@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Vorstand Chat</title>
+
+<!-- 🔥 LOGO -->
+
+<link rel="icon" href="logo.png">
+<link rel="apple-touch-icon" href="logo.png">
+<meta name="theme-color" content="#0f0f0f">
+
+<style>
+body {
+  margin: 0;
+  background: #0f0f0f;
+  font-family: Arial;
+  color: white;
+}
+
+#stats, #avg, #filters {
+  max-width: 600px;
+  margin: auto;
+  padding: 10px;
+  display: flex;
+  justify-content: space-around;
+  border-bottom: 1px solid #333;
+}
+
+.stat { font-weight: bold; }
+.stat.Kritik { color: #ff4444; }
+.stat.Lob { color: #00ff99; }
+.stat.Frage { color: #00bfff; }
+.stat.Vorschlag { color: #ffaa00; }
+
+button {
+  background: #222;
+  color: white;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+button.active {
+  background: #00ff99;
+  color: black;
+}
+
+#chat {
+  max-width: 600px;
+  margin: auto;
+  padding: 15px;
+}
+
+.msg {
+  background: #1e1e1e;
+  margin: 8px 0;
+  padding: 12px;
+  border-radius: 12px;
+}
+
+.type { font-weight: bold; margin-bottom: 5px; }
+.dot { margin-right: 6px; }
+
+.type.Frage { color: #00bfff; }
+.type.Kritik { color: #ff4444; }
+.type.Lob { color: #00ff99; }
+.type.Vorschlag { color: #ffaa00; }
+
+.stars {
+  color: gold;
+  margin-left: 8px;
+}
+
+/* 🔥 NUR RAHMEN BLINKT */
+@keyframes blinkBorder {
+  0% { border-color: currentColor; }
+  50% { border-color: transparent; }
+  100% { border-color: currentColor; }
+}
+
+.msg.new-blue {
+  border: 2px solid #00bfff;
+  color: #00bfff;
+  animation: blinkBorder 1s infinite;
+}
+
+.msg.new-red {
+  border: 4px solid #ff4444;
+  box-shadow: 0 0 10px #ff4444;
+  color: #ff4444;
+  animation: blinkBorder 1s infinite;
+}
+
+.msg.new-green {
+  border: 2px solid #00ff99;
+  color: #00ff99;
+  animation: blinkBorder 1s infinite;
+}
+
+.msg.new-orange {
+  border: 2px solid #ffaa00;
+  color: #ffaa00;
+  animation: blinkBorder 1s infinite;
+}
+
+.text { font-size: 1em; }
+
+.time {
+  font-size: 0.9em;
+  color: #00ff99;
+  text-align: right;
+}
+</style>
+
+</head>
+
+<body>
+
+<script>
+const password = "1";
+const input = prompt("Passwort:");
+
+if (input === password) {
+  startApp();
+} else {
+  document.body.innerHTML = "<h1 style='text-align:center;margin-top:50px;'>Zugriff verweigert</h1>";
+}
+
+function startApp() {
+
+  document.body.innerHTML = `
+  <div id="stats">
+    <div class="stat Kritik">Kritik: 0</div>
+    <div class="stat Lob">Lob: 0</div>
+    <div class="stat Frage">Frage: 0</div>
+    <div class="stat Vorschlag">Vorschlag: 0</div>
+  </div>
+
+  <div id="avg">Ø Bewertung: -</div>
+
+  <div id="filters">
+    <button onclick="setFilter('all')" class="active">Alle</button>
+    <button onclick="setFilter('Frage')">Frage</button>
+    <button onclick="setFilter('Kritik')">Kritik</button>
+    <button onclick="setFilter('Lob')">Lob</button>
+    <button onclick="setFilter('Vorschlag')">Vorschlag</button>
+  </div>
+
+  <div id="chat"></div>
+  `;
+
+  window.currentFilter = "all";
+
+  const url = "https://opensheet.elk.sh/1d2Xf-u1DOMsqlXmwMi05VDD9O6sR4OsmBnQnVqjqGzg/Sheet1";
+
+  let lastCount = 0;
+  let blinkMap = {};
+
+  function getStars(num) {
+    let stars = "";
+    num = parseInt(num);
+    for (let i = 1; i <= 5; i++) {
+      stars += i <= num ? "★" : "☆";
+    }
+    return stars;
+  }
+
+  window.setFilter = function(filter) {
+    currentFilter = filter;
+    document.querySelectorAll("button").forEach(btn => btn.classList.remove("active"));
+    event.target.classList.add("active");
+    load();
+  }
+
+  async function load() {
+    const res = await fetch(url);
+    const data = await res.json();
+
+    let filtered = data.filter(row => row["Dein Feedback"]);
+
+    let stats = { Kritik:0, Lob:0, Frage:0, Vorschlag:0 };
+
+    filtered = filtered.map(row => {
+      let type="", rating="", timeValue="";
+      for (let key in row) {
+        if (key.toLowerCase().includes("art")) type = row[key];
+        if (key.toLowerCase().includes("wie")) rating = parseInt(row[key]);
+        if (key.toLowerCase().includes("zeit")) timeValue = row[key];
+      }
+      if (stats[type] !== undefined) stats[type]++;
+      return { ...row, type, rating, timeValue };
+    });
+
+    document.querySelector(".stat.Kritik").innerText = "Kritik: " + stats.Kritik;
+    document.querySelector(".stat.Lob").innerText = "Lob: " + stats.Lob;
+    document.querySelector(".stat.Frage").innerText = "Frage: " + stats.Frage;
+    document.querySelector(".stat.Vorschlag").innerText = "Vorschlag: " + stats.Vorschlag;
+
+    if (currentFilter !== "all") {
+      filtered = filtered.filter(r => r.type === currentFilter);
+    }
+
+    const ratings = filtered.map(r => r.rating).filter(r => !isNaN(r));
+    let avg = "-";
+    if (ratings.length > 0) {
+      const sum = ratings.reduce((a,b)=>a+b,0);
+      avg = getStars(Math.round(sum / ratings.length));
+    }
+
+    document.getElementById("avg").innerText = "Ø Bewertung: " + avg;
+
+    const chat = document.getElementById("chat");
+    const now = Date.now();
+    const newMessagesCount = filtered.length - lastCount;
+
+    if (newMessagesCount > 0) {
+      filtered.slice(-newMessagesCount).forEach(row => {
+        const key = row.timeValue + row["Dein Feedback"];
+        blinkMap[key] = now;
+      });
+    }
+
+    chat.innerHTML = "";
+
+    filtered.slice(-30).reverse().forEach(row => {
+      const div = document.createElement("div");
+      div.className = "msg";
+
+      const key = row.timeValue + row["Dein Feedback"];
+
+      if (blinkMap[key] && (now - blinkMap[key] < 20000)) {
+        if (row.type === "Frage") div.classList.add("new-blue");
+        if (row.type === "Kritik") div.classList.add("new-red");
+        if (row.type === "Lob") div.classList.add("new-green");
+        if (row.type === "Vorschlag") div.classList.add("new-orange");
+      }
+
+      const type = document.createElement("div");
+      type.className = "type " + row.type;
+
+      const dot = document.createElement("span");
+      dot.className = "dot";
+      dot.innerText = "●";
+
+      type.appendChild(dot);
+      type.appendChild(document.createTextNode(row.type || "Unbekannt"));
+
+      if (row.rating) {
+        const stars = document.createElement("span");
+        stars.className = "stars";
+        stars.innerText = getStars(row.rating);
+        type.appendChild(stars);
+      }
+
+      const text = document.createElement("div");
+      text.className = "text";
+      text.innerText = row["Dein Feedback"];
+
+      const time = document.createElement("div");
+      time.className = "time";
+      time.innerText = row.timeValue || "-";
+
+      div.appendChild(type);
+      div.appendChild(text);
+      div.appendChild(time);
+      chat.appendChild(div);
+    });
+
+    lastCount = filtered.length;
+  }
+
+  setInterval(load, 800);
+  load();
+}
+</script>
+
+</body>
+</html>
