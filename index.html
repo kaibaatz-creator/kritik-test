@@ -9,23 +9,48 @@
 body {
   margin: 0;
   background: #000;
+  color: white;
   font-family: Arial, sans-serif;
-}
-
-.wrapper {
   display: flex;
   justify-content: center;
   align-items: center;
   height: 100vh;
+}
+
+.container {
+  text-align: center;
+}
+
+/* Button Style */
+.button {
+  display: inline-block;
+  padding: 20px 40px;
+  font-size: 20px;
+  background: #ff9900;
+  color: black;
+  text-decoration: none;
+  border-radius: 10px;
+  font-weight: bold;
+  transition: 0.3s;
+}
+
+.button:hover {
+  background: #ffaa33;
 }
 </style>
 </head>
 
 <body>
 
-<div class="wrapper">
-  <iframe src="https://docs.google.com/spreadsheets/d/1d2Xf-u1DOMsqlXmwMi05VDD9O6sR4OsmBnQnVqjqGzg/pubhtml"
-  style="width:100%; max-width:900px; height:90vh; border:none;"></iframe>
+<div class="container">
+  <h1>Vorstand Chat</h1>
+
+  <a class="button" 
+  href="https://docs.google.com/spreadsheets/d/1d2Xf-u1DOMsqlXmwMi05VDD9O6sR4OsmBnQnVqjqGzg"
+  target="_blank">
+    Chat öffnen
+  </a>
+
 </div>
 
 </body>
