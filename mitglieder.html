@@ -14,7 +14,6 @@ body {
   color: white;
 }
 
-/* LOGIN */
 #login {
   display: flex;
   height: 100vh;
@@ -23,7 +22,7 @@ body {
   flex-direction: column;
 }
 
-input {
+input, button {
   padding: 14px;
   border-radius: 10px;
   border: none;
@@ -35,19 +34,11 @@ input {
 
 button {
   background: #00ff99;
-  border: none;
-  padding: 14px;
-  border-radius: 10px;
-  cursor: pointer;
   font-weight: bold;
-  width: 80%;
-  max-width: 300px;
-  font-size: 16px;
 }
 
 #error {
   color: red;
-  margin-top: 10px;
 }
 
 /* HEADER */
@@ -58,15 +49,14 @@ button {
   display: flex;
   justify-content: space-around;
   border-bottom: 1px solid #333;
-  font-size: 14px;
 }
 
 .stat { font-weight: bold; }
+.stat.Kritik { color: #ff4444; }
 .stat.Lob { color: #00ff99; }
 .stat.Frage { color: #00bfff; }
 .stat.Vorschlag { color: #ffaa00; }
 
-/* FILTER */
 #filters {
   max-width: 700px;
   margin: auto;
@@ -76,18 +66,11 @@ button {
   overflow-x: auto;
 }
 
-#filters button {
-  background: #222;
-  color: white;
-  flex: 1;
-}
-
 #filters button.active {
   background: #00ff99;
   color: black;
 }
 
-/* CHAT */
 #chat {
   max-width: 700px;
   margin: auto;
@@ -101,26 +84,13 @@ button {
   border-radius: 14px;
 }
 
-.type { font-weight: bold; margin-bottom: 6px; font-size: 14px; }
-.dot { margin-right: 6px; }
-
+.type { font-weight: bold; margin-bottom: 6px; }
 .type.Frage { color: #00bfff; }
 .type.Lob { color: #00ff99; }
 .type.Vorschlag { color: #ffaa00; }
 
-.stars {
-  color: gold;
-  margin-left: 8px;
-}
-
-.text { font-size: 16px; margin-top: 5px; }
-
-.time {
-  font-size: 12px;
-  color: #00ff99;
-  text-align: right;
-  margin-top: 8px;
-}
+.text { font-size: 16px; }
+.time { font-size: 12px; color: #00ff99; text-align: right; }
 </style>
 
 </head>
@@ -129,16 +99,15 @@ button {
 
 <div id="login">
   <h2>Mitglieder Login</h2>
-  <input type="password" id="pw" placeholder="Passwort eingeben">
+  <input type="password" id="pw" placeholder="Passwort">
   <button onclick="checkLogin()">Login</button>
   <div id="error"></div>
 </div>
 
 <script>
-const password = "5";
-const SESSION_TIME = 15 * 60 * 1000; // 15 Minuten
+const password = "tesT333";
+const SESSION_TIME = 15 * 60 * 1000;
 
-/* 🔥 SESSION CHECK */
 const loginTime = localStorage.getItem("loginTime");
 
 if (loginTime && (Date.now() - loginTime < SESSION_TIME)) {
@@ -160,6 +129,7 @@ function startApp() {
 
 document.body.innerHTML = `
 <div id="stats">
+  <div class="stat Kritik">Kritik: 0</div>
   <div class="stat Lob">Lob: 0</div>
   <div class="stat Frage">Frage: 0</div>
   <div class="stat Vorschlag">Vorschlag: 0</div>
@@ -181,15 +151,6 @@ let currentFilter = "all";
 
 const url = "https://opensheet.elk.sh/1d2Xf-u1DOMsqlXmwMi05VDD9O6sR4OsmBnQnVqjqGzg/Sheet1";
 
-function getStars(num) {
-  let stars = "";
-  num = parseInt(num);
-  for (let i = 1; i <= 5; i++) {
-    stars += i <= num ? "★" : "☆";
-  }
-  return stars;
-}
-
 window.setFilter = function(filter, el) {
   currentFilter = filter;
   document.querySelectorAll("#filters button").forEach(btn => btn.classList.remove("active"));
@@ -201,41 +162,31 @@ async function load() {
   const res = await fetch(url);
   const data = await res.json();
 
-  let stats = { Lob:0, Frage:0, Vorschlag:0 };
+  let stats = { Kritik:0, Lob:0, Frage:0, Vorschlag:0 };
 
-  let filtered = data
+  let processed = data
     .filter(row => row["Dein Feedback"])
     .map(row => {
       let type="", rating="", timeValue="";
       for (let key in row) {
         if (key.toLowerCase().includes("art")) type = row[key];
-        if (key.toLowerCase().includes("wie")) rating = parseInt(row[key]);
         if (key.toLowerCase().includes("zeit")) timeValue = row[key];
       }
-      return { ...row, type, rating, timeValue };
-    })
-    .filter(row => row.type !== "Kritik");
+      if (stats[type] !== undefined) stats[type]++;
+      return { ...row, type, timeValue };
+    });
 
-  filtered.forEach(r => {
-    if (stats[r.type] !== undefined) stats[r.type]++;
-  });
-
-  document.querySelector(".stat.Lob").innerText = "Lob: " + stats.Lob;
-  document.querySelector(".stat.Frage").innerText = "Frage: " + stats.Frage;
-  document.querySelector(".stat.Vorschlag").innerText = "Vorschlag: " + stats.Vorschlag;
+  // 👉 Kritik NICHT anzeigen
+  let filtered = processed.filter(r => r.type !== "Kritik");
 
   if (currentFilter !== "all") {
     filtered = filtered.filter(r => r.type === currentFilter);
   }
 
-  const ratings = filtered.map(r => r.rating).filter(r => !isNaN(r));
-  let avg = "-";
-  if (ratings.length > 0) {
-    const sum = ratings.reduce((a,b)=>a+b,0);
-    avg = getStars(Math.round(sum / ratings.length));
-  }
-
-  document.getElementById("avg").innerText = "Ø Bewertung: " + avg;
+  document.querySelector(".stat.Kritik").innerText = "Kritik: " + stats.Kritik;
+  document.querySelector(".stat.Lob").innerText = "Lob: " + stats.Lob;
+  document.querySelector(".stat.Frage").innerText = "Frage: " + stats.Frage;
+  document.querySelector(".stat.Vorschlag").innerText = "Vorschlag: " + stats.Vorschlag;
 
   const chat = document.getElementById("chat");
   chat.innerHTML = "";
@@ -246,20 +197,7 @@ async function load() {
 
     const type = document.createElement("div");
     type.className = "type " + row.type;
-
-    const dot = document.createElement("span");
-    dot.className = "dot";
-    dot.innerText = "●";
-
-    type.appendChild(dot);
-    type.appendChild(document.createTextNode(row.type || "Unbekannt"));
-
-    if (row.rating) {
-      const stars = document.createElement("span");
-      stars.className = "stars";
-      stars.innerText = getStars(row.rating);
-      type.appendChild(stars);
-    }
+    type.innerText = "● " + row.type;
 
     const text = document.createElement("div");
     text.className = "text";
