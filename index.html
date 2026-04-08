@@ -115,12 +115,32 @@ button{
 .time{font-size:12px;color:#888;text-align:right;margin-top:8px;}
 
 @keyframes blinkBorder {
-  0% { border-color: currentColor; }
-  50% { border-color: transparent; }
-  100% { border-color: currentColor; }
+  0% { opacity:1; }
+  50% { opacity:0.3; }
+  100% { opacity:1; }
 }
 
-.msg.new {
+.msg.new.Frage {
+  border: 2px solid #00bfff;
+  box-shadow: 0 0 10px #00bfff;
+  animation: blinkBorder 1s infinite;
+}
+
+.msg.new.Kritik {
+  border: 2px solid #ff4444;
+  box-shadow: 0 0 10px #ff4444;
+  animation: blinkBorder 1s infinite;
+}
+
+.msg.new.Lob {
+  border: 2px solid #00ff99;
+  box-shadow: 0 0 10px #00ff99;
+  animation: blinkBorder 1s infinite;
+}
+
+.msg.new.Vorschlag {
+  border: 2px solid #ffaa00;
+  box-shadow: 0 0 10px #ffaa00;
   animation: blinkBorder 1s infinite;
 }
 </style>
@@ -203,7 +223,6 @@ window.setFilter=function(filter,el){
   load();
 }
 
-// Firebase
 const adminRef=db.ref("admins").push();
 adminRef.set(true);
 adminRef.onDisconnect().remove();
