@@ -63,6 +63,7 @@ button{
   border-radius:10px;
 }
 
+.stat.Kritik{color:#ff4444;}
 .stat.Lob{color:#00ff99;}
 .stat.Frage{color:#00bfff;}
 .stat.Vorschlag{color:#ffaa00;}
@@ -186,6 +187,7 @@ document.body.innerHTML = `
 </div>
 
 <div id="stats">
+  <div class="stat Kritik">Kritik: 0</div>
   <div class="stat Lob">Lob: 0</div>
   <div class="stat Frage">Frage: 0</div>
   <div class="stat Vorschlag">Vorschlag: 0</div>
@@ -230,9 +232,9 @@ async function load(){
   const res=await fetch(url);
   const data=await res.json();
 
-  let stats={Lob:0,Frage:0,Vorschlag:0};
+  let stats={Kritik:0,Lob:0,Frage:0,Vorschlag:0};
 
-  let filtered=data.filter(r=>r["Dein Feedback"]).map(r=>{
+  let all=data.filter(r=>r["Dein Feedback"]).map(r=>{
     let type="",time="";
     for(let k in r){
       if(k.toLowerCase().includes("art")) type=r[k];
@@ -242,7 +244,8 @@ async function load(){
     return {...r,type,time};
   });
 
-  filtered = filtered.filter(r=>r.type!=="Kritik");
+  // ❌ Kritik NICHT im Chat
+  let filtered = all.filter(r=>r.type!=="Kritik");
 
   if(currentFilter!=="all"){
     filtered=filtered.filter(r=>r.type===currentFilter);
@@ -263,6 +266,7 @@ async function load(){
     });
   }
 
+  document.querySelector(".stat.Kritik").innerText="Kritik: "+stats.Kritik;
   document.querySelector(".stat.Lob").innerText="Lob: "+stats.Lob;
   document.querySelector(".stat.Frage").innerText="Frage: "+stats.Frage;
   document.querySelector(".stat.Vorschlag").innerText="Vorschlag: "+stats.Vorschlag;
