@@ -18,7 +18,6 @@ body {
   color: white;
 }
 
-/* LOGIN */
 #login {
   display:flex;
   height:100vh;
@@ -39,12 +38,8 @@ button{
   font-weight:bold;
 }
 
-#error{
-  color:red;
-  margin-top:5px;
-}
+#error{ color:red; }
 
-/* HEADER */
 .header{
   text-align:center;
   padding:15px;
@@ -53,7 +48,6 @@ button{
   border-bottom:1px solid #333;
 }
 
-/* COUNTS */
 #counts{
   text-align:center;
   margin:10px;
@@ -64,7 +58,6 @@ button{
   font-weight:bold;
 }
 
-/* STATS */
 #stats{
   display:flex;
   justify-content:space-around;
@@ -82,7 +75,6 @@ button{
 .stat.Frage{color:#00bfff;}
 .stat.Vorschlag{color:#ffaa00;}
 
-/* FILTER */
 #filters{
   display:flex;
   gap:6px;
@@ -100,7 +92,6 @@ button{
   color:black;
 }
 
-/* CHAT */
 #chat{
   max-width:700px;
   margin:auto;
@@ -122,6 +113,16 @@ button{
 
 .type{font-weight:bold;margin-bottom:6px;}
 .time{font-size:12px;color:#888;text-align:right;margin-top:8px;}
+
+@keyframes blinkBorder {
+  0% { border-color: currentColor; }
+  50% { border-color: transparent; }
+  100% { border-color: currentColor; }
+}
+
+.msg.new {
+  animation: blinkBorder 1s infinite;
+}
 </style>
 
 </head>
@@ -192,6 +193,8 @@ document.body.innerHTML = `
 `;
 
 let currentFilter="all";
+let blinkMap = {};
+let lastCount = 0;
 
 window.setFilter=function(filter,el){
   currentFilter=filter;
@@ -200,17 +203,15 @@ window.setFilter=function(filter,el){
   load();
 }
 
-// 👔 Vorstand
+// Firebase
 const adminRef=db.ref("admins").push();
 adminRef.set(true);
 adminRef.onDisconnect().remove();
 
-// 👥 Mitglieder
 db.ref("members").on("value",snap=>{
   document.getElementById("members").innerText="👥 Mitglieder: "+snap.numChildren();
 });
 
-// 👔 Status
 const MAX_ADMINS=5;
 
 db.ref("admins").on("value",snap=>{
@@ -224,7 +225,6 @@ db.ref("admins").on("value",snap=>{
   }
 });
 
-// 📊 Feedback
 const url="https://opensheet.elk.sh/1d2Xf-u1DOMsqlXmwMi05VDD9O6sR4OsmBnQnVqjqGzg/Sheet1";
 
 async function load(){
@@ -247,6 +247,16 @@ async function load(){
     filtered=filtered.filter(r=>r.type===currentFilter);
   }
 
+  const now = Date.now();
+  const newMessages = filtered.length - lastCount;
+
+  if (newMessages > 0) {
+    filtered.slice(-newMessages).forEach(r => {
+      const key = r.time + r["Dein Feedback"];
+      blinkMap[key] = now;
+    });
+  }
+
   document.querySelector(".stat.Kritik").innerText="Kritik: "+stats.Kritik;
   document.querySelector(".stat.Lob").innerText="Lob: "+stats.Lob;
   document.querySelector(".stat.Frage").innerText="Frage: "+stats.Frage;
@@ -259,6 +269,11 @@ async function load(){
     const div=document.createElement("div");
     div.className="msg "+r.type;
 
+    const key = r.time + r["Dein Feedback"];
+    if (blinkMap[key] && (now - blinkMap[key] < 20000)) {
+      div.classList.add("new");
+    }
+
     div.innerHTML=`
       <div class="type">● ${r.type}</div>
       <div>${r["Dein Feedback"]}</div>
@@ -267,6 +282,8 @@ async function load(){
 
     chat.appendChild(div);
   });
+
+  lastCount = filtered.length;
 }
 
 setInterval(load,3000);
