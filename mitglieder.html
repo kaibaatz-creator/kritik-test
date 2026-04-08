@@ -14,7 +14,6 @@ body {
   color: white;
 }
 
-/* LOGIN */
 #login {
   display: flex;
   height: 100vh;
@@ -42,7 +41,6 @@ button {
   color: red;
 }
 
-/* HEADER */
 #stats, #avg {
   max-width: 700px;
   margin: auto;
@@ -58,7 +56,13 @@ button {
 .stat.Frage { color: #00bfff; }
 .stat.Vorschlag { color: #ffaa00; }
 
-/* FILTER */
+#onlineCount {
+  text-align: center;
+  margin: 10px;
+  font-size: 16px;
+  color: #00ff99;
+}
+
 #filters {
   max-width: 700px;
   margin: auto;
@@ -79,7 +83,6 @@ button {
   color: black;
 }
 
-/* CHAT */
 #chat {
   max-width: 700px;
   margin: auto;
@@ -94,12 +97,10 @@ button {
   border-left: 4px solid transparent;
 }
 
-/* Farben */
 .msg.Frage { border-left-color: #00bfff; }
 .msg.Lob { border-left-color: #00ff99; }
 .msg.Vorschlag { border-left-color: #ffaa00; }
 
-/* 🔥 Glow */
 @keyframes glow {
   0% { box-shadow: 0 0 5px currentColor; }
   50% { box-shadow: 0 0 15px currentColor; }
@@ -110,18 +111,12 @@ button {
   animation: glow 1.5s infinite;
 }
 
-.type {
-  font-weight: bold;
-  margin-bottom: 6px;
-}
-
+.type { font-weight: bold; margin-bottom: 6px; }
 .type.Frage { color: #00bfff; }
 .type.Lob { color: #00ff99; }
 .type.Vorschlag { color: #ffaa00; }
 
-.text {
-  font-size: 16px;
-}
+.text { font-size: 16px; }
 
 .time {
   font-size: 12px;
@@ -143,7 +138,7 @@ button {
 </div>
 
 <script>
-const password = "5";
+const password = "tesT333";
 const SESSION_TIME = 15 * 60 * 1000;
 
 let newMap = {};
@@ -175,6 +170,8 @@ document.body.innerHTML = `
   <div class="stat Frage">Frage: 0</div>
   <div class="stat Vorschlag">Vorschlag: 0</div>
 </div>
+
+<div id="onlineCount">👥 0 online</div>
 
 <div id="avg">Ø Bewertung: -</div>
 
@@ -269,6 +266,38 @@ setInterval(load, 3000);
 load();
 
 }
+</script>
+
+<!-- 🔥 FIREBASE -->
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyCFjUj-XSN0YnvAilerXPkXbw2iR2ixBv8",
+  authDomain: "kritik-system.firebaseapp.com",
+  databaseURL: "https://kritik-system-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "kritik-system",
+  storageBucket: "kritik-system.firebasestorage.app",
+  messagingSenderId: "515871128284",
+  appId: "1:515871128284:web:2db651b4dc5a876a1c9219"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+const usersRef = db.ref("onlineUsers");
+
+const userRef = usersRef.push();
+userRef.set(true);
+userRef.onDisconnect().remove();
+
+usersRef.on("value", (snapshot) => {
+  const count = snapshot.numChildren();
+  document.getElementById("onlineCount").innerText = "👥 " + count + " online";
+});
 </script>
 
 </body>
