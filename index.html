@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="de">
 <head>
 <meta charset="UTF-8">
@@ -7,7 +6,6 @@
 <title>Vorstand Live Feedback</title>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
 <style>
@@ -114,36 +112,51 @@ button{
 .type{font-weight:bold;margin-bottom:6px;}
 .time{font-size:12px;color:#888;text-align:right;margin-top:8px;}
 
-/* 🔥 NUR RAHMEN BLINKT */
-@keyframes blinkBorder {
-  0% { border-color: currentColor; }
-  50% { border-color: transparent; }
-  100% { border-color: currentColor; }
-}
+/* 🔥 FIX: eigene Animationen pro Farbe */
 
 /* 🔵 Frage */
+@keyframes blinkBlue {
+  0% { border-color: #00bfff; }
+  50% { border-color: transparent; }
+  100% { border-color: #00bfff; }
+}
 .msg.new.Frage {
   border: 2px solid #00bfff;
-  animation: blinkBorder 1s infinite;
+  animation: blinkBlue 1s infinite;
 }
 
 /* 🔴 Kritik (stärker!) */
+@keyframes blinkRed {
+  0% { border-color: #ff4444; }
+  50% { border-color: transparent; }
+  100% { border-color: #ff4444; }
+}
 .msg.new.Kritik {
   border: 4px solid #ff4444;
   box-shadow: 0 0 12px #ff4444;
-  animation: blinkBorder 1s infinite;
+  animation: blinkRed 1s infinite;
 }
 
 /* 🟢 Lob */
+@keyframes blinkGreen {
+  0% { border-color: #00ff99; }
+  50% { border-color: transparent; }
+  100% { border-color: #00ff99; }
+}
 .msg.new.Lob {
   border: 2px solid #00ff99;
-  animation: blinkBorder 1s infinite;
+  animation: blinkGreen 1s infinite;
 }
 
 /* 🟠 Vorschlag */
+@keyframes blinkOrange {
+  0% { border-color: #ffaa00; }
+  50% { border-color: transparent; }
+  100% { border-color: #ffaa00; }
+}
 .msg.new.Vorschlag {
   border: 2px solid #ffaa00;
-  animation: blinkBorder 1s infinite;
+  animation: blinkOrange 1s infinite;
 }
 </style>
 
@@ -225,7 +238,6 @@ window.setFilter=function(filter,el){
   load();
 }
 
-// Firebase
 const adminRef=db.ref("admins").push();
 adminRef.set(true);
 adminRef.onDisconnect().remove();
