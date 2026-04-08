@@ -29,7 +29,6 @@ input, button {
   margin: 10px;
   width: 80%;
   max-width: 300px;
-  font-size: 16px;
 }
 
 button {
@@ -37,9 +36,7 @@ button {
   font-weight: bold;
 }
 
-#error {
-  color: red;
-}
+#error { color: red; }
 
 #stats, #avg {
   max-width: 700px;
@@ -59,7 +56,6 @@ button {
 #onlineCount {
   text-align: center;
   margin: 10px;
-  font-size: 16px;
   color: #00ff99;
 }
 
@@ -69,7 +65,6 @@ button {
   padding: 10px;
   display: flex;
   gap: 8px;
-  overflow-x: auto;
 }
 
 #filters button {
@@ -112,10 +107,6 @@ button {
 }
 
 .type { font-weight: bold; margin-bottom: 6px; }
-.type.Frage { color: #00bfff; }
-.type.Lob { color: #00ff99; }
-.type.Vorschlag { color: #ffaa00; }
-
 .text { font-size: 16px; }
 
 .time {
@@ -265,16 +256,7 @@ async function load() {
 setInterval(load, 3000);
 load();
 
-}
-</script>
-
-<!-- 🔥 FIREBASE -->
-
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-
-<script>
+// 🔥 FIREBASE (MEMBERS!)
 const firebaseConfig = {
   apiKey: "AIzaSyCFjUj-XSN0YnvAilerXPkXbw2iR2ixBv8",
   authDomain: "kritik-system.firebaseapp.com",
@@ -288,17 +270,23 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-const usersRef = db.ref("onlineUsers");
-
-const userRef = usersRef.push();
+// 👉 Mitglieder zählen sich selbst
+const userRef = db.ref("members").push();
 userRef.set(true);
 userRef.onDisconnect().remove();
 
-usersRef.on("value", (snapshot) => {
+// 👉 Anzeige
+db.ref("members").on("value", (snapshot) => {
   const count = snapshot.numChildren();
   document.getElementById("onlineCount").innerText = "👥 " + count + " online";
 });
+
+}
 </script>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
 </body>
 </html>
