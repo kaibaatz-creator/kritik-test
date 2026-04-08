@@ -14,6 +14,7 @@ body {
   color: white;
 }
 
+/* LOGIN */
 #login {
   display: flex;
   height: 100vh;
@@ -29,7 +30,6 @@ input, button {
   margin: 10px;
   width: 80%;
   max-width: 300px;
-  font-size: 16px;
 }
 
 button {
@@ -37,10 +37,9 @@ button {
   font-weight: bold;
 }
 
-#error {
-  color: red;
-}
+#error { color: red; }
 
+/* HEADER */
 .header {
   text-align: center;
   padding: 15px;
@@ -49,6 +48,19 @@ button {
   border-bottom: 1px solid #333;
 }
 
+/* COUNTS */
+#counts {
+  text-align: center;
+  margin: 10px;
+  font-size: 16px;
+}
+
+#adminStatus {
+  margin-top: 5px;
+  font-weight: bold;
+}
+
+/* STATS */
 #stats {
   display: flex;
   justify-content: space-around;
@@ -66,6 +78,7 @@ button {
 .stat.Frage { color: #00bfff; }
 .stat.Vorschlag { color: #ffaa00; }
 
+/* FILTER */
 #filters {
   display: flex;
   gap: 6px;
@@ -83,6 +96,7 @@ button {
   color: black;
 }
 
+/* CHAT */
 #chat {
   padding: 10px;
   max-width: 700px;
@@ -102,14 +116,8 @@ button {
 .msg.Lob { border-left-color: #00ff99; }
 .msg.Vorschlag { border-left-color: #ffaa00; }
 
-.type {
-  font-weight: bold;
-  margin-bottom: 6px;
-}
-
-.text {
-  font-size: 16px;
-}
+.type { font-weight: bold; margin-bottom: 6px; }
+.text { font-size: 16px; }
 
 .time {
   font-size: 12px;
@@ -131,17 +139,14 @@ button {
 </div>
 
 <script>
-const password = "1";
+const password = "vorstand";
 const SESSION_TIME = 60 * 60 * 1000;
 
-// 🔥 Beim Laden prüfen
-window.onload = function() {
-  const loginTime = localStorage.getItem("loginTimeVorstand");
+const loginTime = localStorage.getItem("loginTimeVorstand");
 
-  if (loginTime && (Date.now() - loginTime < SESSION_TIME)) {
-    startApp();
-  }
-};
+if (loginTime && (Date.now() - loginTime < SESSION_TIME)) {
+  startApp();
+}
 
 function checkLogin() {
   const input = document.getElementById("pw").value;
@@ -158,6 +163,12 @@ function startApp() {
 
 document.body.innerHTML = `
 <div class="header">📊 Vorstand Live Feedback</div>
+
+<div id="counts">
+  <div id="membersCount">👥 Mitglieder: 0</div>
+  <div id="adminCount">👔 Vorstand: 0</div>
+  <div id="adminStatus">⏳ wird geprüft...</div>
+</div>
 
 <div id="stats">
   <div class="stat Kritik">Kritik: 0</div>
@@ -244,8 +255,55 @@ async function load() {
 setInterval(load, 3000);
 load();
 
+// 🔥 FIREBASE
+const firebaseConfig = {
+  apiKey: "AIzaSyCFjUj-XSN0YnvAilerXPkXbw2iR2ixBv8",
+  authDomain: "kritik-system.firebaseapp.com",
+  databaseURL: "https://kritik-system-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "kritik-system",
+  storageBucket: "kritik-system.firebasestorage.app",
+  messagingSenderId: "515871128284",
+  appId: "1:515871128284:web:2db651b4dc5a876a1c9219"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// 👔 Vorstand zählt sich
+const adminRef = db.ref("admins").push();
+adminRef.set(true);
+adminRef.onDisconnect().remove();
+
+// 👥 Mitglieder zählen
+db.ref("members").on("value", snap => {
+  document.getElementById("membersCount").innerText =
+    "👥 Mitglieder: " + snap.numChildren();
+});
+
+// 👔 Vorstand zählen + Status
+const MAX_ADMINS = 5;
+
+db.ref("admins").on("value", snap => {
+  const count = snap.numChildren();
+
+  document.getElementById("adminCount").innerText =
+    "👔 Vorstand: " + count;
+
+  if (count >= MAX_ADMINS) {
+    document.getElementById("adminStatus").innerText =
+      "✅ Vorstand vollständig";
+  } else {
+    document.getElementById("adminStatus").innerText =
+      "❌ Vorstand fehlt (" + count + "/" + MAX_ADMINS + ")";
+  }
+});
+
 }
 </script>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
 </body>
 </html>
