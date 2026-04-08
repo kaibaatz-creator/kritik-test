@@ -4,15 +4,21 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vorstand</title>
+<title>Vorstand Live Feedback</title>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
 <style>
-body { margin:0; background:#0f0f0f; color:white; font-family:Arial;}
+body {
+  margin: 0;
+  background: linear-gradient(180deg, #0f0f0f, #1a1a1a);
+  font-family: Arial;
+  color: white;
+}
 
+/* LOGIN */
 #login {
   display:flex;
   height:100vh;
@@ -23,34 +29,99 @@ body { margin:0; background:#0f0f0f; color:white; font-family:Arial;}
 
 input,button{
   padding:12px;
-  border-radius:8px;
+  border-radius:10px;
   border:none;
   margin:8px;
 }
 
-button{background:#00ff99;}
+button{
+  background:#00ff99;
+  font-weight:bold;
+}
 
 #error{
   color:red;
   margin-top:5px;
-  font-size:14px;
 }
 
-#counts{text-align:center;margin:10px;}
-#stats{display:flex;justify-content:space-around;padding:10px;}
+/* HEADER */
+.header{
+  text-align:center;
+  padding:15px;
+  font-size:20px;
+  font-weight:bold;
+  border-bottom:1px solid #333;
+}
+
+/* COUNTS */
+#counts{
+  text-align:center;
+  margin:10px;
+}
+
+#status{
+  margin-top:5px;
+  font-weight:bold;
+}
+
+/* STATS */
+#stats{
+  display:flex;
+  justify-content:space-around;
+  padding:10px;
+}
+
+.stat{
+  background:#1e1e1e;
+  padding:6px 10px;
+  border-radius:10px;
+}
 
 .stat.Kritik{color:#ff4444;}
 .stat.Lob{color:#00ff99;}
 .stat.Frage{color:#00bfff;}
 .stat.Vorschlag{color:#ffaa00;}
 
-#chat{max-width:700px;margin:auto;padding:10px;}
-.msg{background:#1e1e1e;margin:10px 0;padding:12px;border-radius:12px;}
-
-#status{
-  font-weight:bold;
-  margin-top:5px;
+/* FILTER */
+#filters{
+  display:flex;
+  gap:6px;
+  padding:10px;
 }
+
+#filters button{
+  flex:1;
+  background:#222;
+  color:white;
+}
+
+#filters button.active{
+  background:#00ff99;
+  color:black;
+}
+
+/* CHAT */
+#chat{
+  max-width:700px;
+  margin:auto;
+  padding:10px;
+}
+
+.msg{
+  background:#1e1e1e;
+  margin:10px 0;
+  padding:14px;
+  border-radius:14px;
+  border-left:4px solid transparent;
+}
+
+.msg.Frage{border-left-color:#00bfff;}
+.msg.Kritik{border-left-color:#ff4444;}
+.msg.Lob{border-left-color:#00ff99;}
+.msg.Vorschlag{border-left-color:#ffaa00;}
+
+.type{font-weight:bold;margin-bottom:6px;}
+.time{font-size:12px;color:#888;text-align:right;margin-top:8px;}
 </style>
 
 </head>
@@ -75,7 +146,6 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// ⏱️ SESSION
 const SESSION_TIME = 60 * 60 * 1000;
 const loginTime = localStorage.getItem("loginTimeAdmin");
 
@@ -84,19 +154,19 @@ if (loginTime && (Date.now() - loginTime < SESSION_TIME)) {
 }
 
 function login(){
-  const pw = document.getElementById("pw").value;
-
-  if(pw === "1"){
+  if(document.getElementById("pw").value==="1"){
     localStorage.setItem("loginTimeAdmin", Date.now());
     start();
   } else {
-    document.getElementById("error").innerText = "❌ Falsches Passwort";
+    document.getElementById("error").innerText="❌ Falsches Passwort";
   }
 }
 
 function start(){
 
 document.body.innerHTML = `
+<div class="header">📊 Vorstand Live Feedback</div>
+
 <div id="counts">
   <div id="members">👥 Mitglieder: 0</div>
   <div id="admins">👔 Vorstand: 0</div>
@@ -110,70 +180,93 @@ document.body.innerHTML = `
   <div class="stat Vorschlag">Vorschlag: 0</div>
 </div>
 
+<div id="filters">
+  <button class="active" onclick="setFilter('all', this)">Alle</button>
+  <button onclick="setFilter('Frage', this)">Frage</button>
+  <button onclick="setFilter('Kritik', this)">Kritik</button>
+  <button onclick="setFilter('Lob', this)">Lob</button>
+  <button onclick="setFilter('Vorschlag', this)">Vorschlag</button>
+</div>
+
 <div id="chat"></div>
 `;
 
-const url="https://opensheet.elk.sh/1d2Xf-u1DOMsqlXmwMi05VDD9O6sR4OsmBnQnVqjqGzg/Sheet1";
+let currentFilter="all";
 
-// 👔 Vorstand zählen (sauber)
-const adminRef = db.ref("admins").push();
+window.setFilter=function(filter,el){
+  currentFilter=filter;
+  document.querySelectorAll("#filters button").forEach(b=>b.classList.remove("active"));
+  el.classList.add("active");
+  load();
+}
+
+// 👔 Vorstand
+const adminRef=db.ref("admins").push();
 adminRef.set(true);
-
-// 🔥 WICHTIG: sauber entfernen bei verlassen
 adminRef.onDisconnect().remove();
 
-// 👥 Mitglieder anzeigen
-db.ref("members").on("value", snap=>{
-  document.getElementById("members").innerText =
-    "👥 Mitglieder: " + snap.numChildren();
+// 👥 Mitglieder
+db.ref("members").on("value",snap=>{
+  document.getElementById("members").innerText="👥 Mitglieder: "+snap.numChildren();
 });
 
-// 👔 Vorstand + Status
-const MAX_ADMINS = 5;
+// 👔 Status
+const MAX_ADMINS=5;
 
-db.ref("admins").on("value", snap=>{
-  let count = snap.numChildren();
+db.ref("admins").on("value",snap=>{
+  let count=snap.numChildren();
+  document.getElementById("admins").innerText="👔 Vorstand: "+count;
 
-  document.getElementById("admins").innerText =
-    "👔 Vorstand: " + count;
-
-  if(count >= MAX_ADMINS){
-    document.getElementById("status").innerText =
-      "✅ Vorstand vollständig";
-  } else {
-    document.getElementById("status").innerText =
-      "❌ Vorstand fehlt (" + count + "/" + MAX_ADMINS + ")";
+  if(count>=MAX_ADMINS){
+    document.getElementById("status").innerText="✅ Vorstand vollständig";
+  }else{
+    document.getElementById("status").innerText="❌ Vorstand fehlt ("+count+"/"+MAX_ADMINS+")";
   }
 });
 
-// 📊 Feedback laden
+// 📊 Feedback
+const url="https://opensheet.elk.sh/1d2Xf-u1DOMsqlXmwMi05VDD9O6sR4OsmBnQnVqjqGzg/Sheet1";
+
 async function load(){
-  const res = await fetch(url);
-  const data = await res.json();
+  const res=await fetch(url);
+  const data=await res.json();
 
   let stats={Kritik:0,Lob:0,Frage:0,Vorschlag:0};
 
-  const chat=document.getElementById("chat");
-  chat.innerHTML="";
-
-  data.filter(r=>r["Dein Feedback"]).slice(-20).reverse().forEach(r=>{
-    let type="";
+  let filtered=data.filter(r=>r["Dein Feedback"]).map(r=>{
+    let type="",time="";
     for(let k in r){
       if(k.toLowerCase().includes("art")) type=r[k];
+      if(k.toLowerCase().includes("zeit")) time=r[k];
     }
-
     if(stats[type]!=undefined) stats[type]++;
-
-    const div=document.createElement("div");
-    div.className="msg";
-    div.innerHTML="<b>"+type+"</b><br>"+r["Dein Feedback"];
-    chat.appendChild(div);
+    return {...r,type,time};
   });
+
+  if(currentFilter!=="all"){
+    filtered=filtered.filter(r=>r.type===currentFilter);
+  }
 
   document.querySelector(".stat.Kritik").innerText="Kritik: "+stats.Kritik;
   document.querySelector(".stat.Lob").innerText="Lob: "+stats.Lob;
   document.querySelector(".stat.Frage").innerText="Frage: "+stats.Frage;
   document.querySelector(".stat.Vorschlag").innerText="Vorschlag: "+stats.Vorschlag;
+
+  const chat=document.getElementById("chat");
+  chat.innerHTML="";
+
+  filtered.slice(-30).reverse().forEach(r=>{
+    const div=document.createElement("div");
+    div.className="msg "+r.type;
+
+    div.innerHTML=`
+      <div class="type">● ${r.type}</div>
+      <div>${r["Dein Feedback"]}</div>
+      <div class="time">${r.time || "-"}</div>
+    `;
+
+    chat.appendChild(div);
+  });
 }
 
 setInterval(load,3000);
