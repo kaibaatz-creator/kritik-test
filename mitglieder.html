@@ -9,11 +9,12 @@
 <style>
 body {
   margin: 0;
-  background: #0f0f0f;
+  background: linear-gradient(180deg, #0f0f0f, #1a1a1a);
   font-family: Arial;
   color: white;
 }
 
+/* LOGIN */
 #login {
   display: flex;
   height: 100vh;
@@ -57,6 +58,7 @@ button {
 .stat.Frage { color: #00bfff; }
 .stat.Vorschlag { color: #ffaa00; }
 
+/* FILTER */
 #filters {
   max-width: 700px;
   margin: auto;
@@ -66,11 +68,18 @@ button {
   overflow-x: auto;
 }
 
+#filters button {
+  background: #222;
+  color: white;
+  flex: 1;
+}
+
 #filters button.active {
   background: #00ff99;
   color: black;
 }
 
+/* CHAT */
 #chat {
   max-width: 700px;
   margin: auto;
@@ -82,15 +91,45 @@ button {
   margin: 10px 0;
   padding: 14px;
   border-radius: 14px;
+  border-left: 4px solid transparent;
+  transition: 0.2s;
 }
 
-.type { font-weight: bold; margin-bottom: 6px; }
+/* Farben */
+.msg.Frage { border-left-color: #00bfff; }
+.msg.Lob { border-left-color: #00ff99; }
+.msg.Vorschlag { border-left-color: #ffaa00; }
+
+/* 🔥 Leucht-Effekt */
+@keyframes glow {
+  0% { box-shadow: 0 0 5px currentColor; }
+  50% { box-shadow: 0 0 15px currentColor; }
+  100% { box-shadow: 0 0 5px currentColor; }
+}
+
+.msg.new {
+  animation: glow 1.5s infinite;
+}
+
+.type {
+  font-weight: bold;
+  margin-bottom: 6px;
+}
+
 .type.Frage { color: #00bfff; }
 .type.Lob { color: #00ff99; }
 .type.Vorschlag { color: #ffaa00; }
 
-.text { font-size: 16px; }
-.time { font-size: 12px; color: #00ff99; text-align: right; }
+.text {
+  font-size: 16px;
+}
+
+.time {
+  font-size: 12px;
+  color: #888;
+  text-align: right;
+  margin-top: 8px;
+}
 </style>
 
 </head>
@@ -105,8 +144,11 @@ button {
 </div>
 
 <script>
-const password = "tesT333";
+const password = "5";
 const SESSION_TIME = 15 * 60 * 1000;
+
+let lastCount = 0;
+let newMap = {};
 
 const loginTime = localStorage.getItem("loginTime");
 
@@ -167,7 +209,7 @@ async function load() {
   let processed = data
     .filter(row => row["Dein Feedback"])
     .map(row => {
-      let type="", rating="", timeValue="";
+      let type="", timeValue="";
       for (let key in row) {
         if (key.toLowerCase().includes("art")) type = row[key];
         if (key.toLowerCase().includes("zeit")) timeValue = row[key];
@@ -176,24 +218,30 @@ async function load() {
       return { ...row, type, timeValue };
     });
 
-  // 👉 Kritik NICHT anzeigen
   let filtered = processed.filter(r => r.type !== "Kritik");
 
-  if (currentFilter !== "all") {
-    filtered = filtered.filter(r => r.type === currentFilter);
+  const chat = document.getElementById("chat");
+  const now = Date.now();
+  const newCount = filtered.length - lastCount;
+
+  if (newCount > 0) {
+    filtered.slice(-newCount).forEach(row => {
+      const key = row.timeValue + row["Dein Feedback"];
+      newMap[key] = now;
+    });
   }
 
-  document.querySelector(".stat.Kritik").innerText = "Kritik: " + stats.Kritik;
-  document.querySelector(".stat.Lob").innerText = "Lob: " + stats.Lob;
-  document.querySelector(".stat.Frage").innerText = "Frage: " + stats.Frage;
-  document.querySelector(".stat.Vorschlag").innerText = "Vorschlag: " + stats.Vorschlag;
-
-  const chat = document.getElementById("chat");
   chat.innerHTML = "";
 
   filtered.slice(-30).reverse().forEach(row => {
     const div = document.createElement("div");
-    div.className = "msg";
+    div.className = "msg " + row.type;
+
+    const key = row.timeValue + row["Dein Feedback"];
+
+    if (newMap[key] && (now - newMap[key] < 15000)) {
+      div.classList.add("new");
+    }
 
     const type = document.createElement("div");
     type.className = "type " + row.type;
@@ -212,6 +260,13 @@ async function load() {
     div.appendChild(time);
     chat.appendChild(div);
   });
+
+  document.querySelector(".stat.Kritik").innerText = "Kritik: " + stats.Kritik;
+  document.querySelector(".stat.Lob").innerText = "Lob: " + stats.Lob;
+  document.querySelector(".stat.Frage").innerText = "Frage: " + stats.Frage;
+  document.querySelector(".stat.Vorschlag").innerText = "Vorschlag: " + stats.Vorschlag;
+
+  lastCount = filtered.length;
 }
 
 setInterval(load, 3000);
