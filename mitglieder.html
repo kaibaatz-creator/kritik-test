@@ -6,115 +6,29 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Feedback Übersicht</title>
 
+<!-- 🔥 Firebase zuerst -->
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
 <style>
-body {
-  margin: 0;
-  background: linear-gradient(180deg, #0f0f0f, #1a1a1a);
-  font-family: Arial;
-  color: white;
-}
+body { margin:0; background:#0f0f0f; color:white; font-family:Arial;}
+#login {display:flex;height:100vh;justify-content:center;align-items:center;flex-direction:column;}
+input,button{padding:12px;border-radius:8px;border:none;margin:8px;}
+button{background:#00ff99;}
 
-#login {
-  display: flex;
-  height: 100vh;
-  justify-content: center;
-  align-items: center;
-  flex-direction: column;
-}
+#stats {display:flex;justify-content:space-around;padding:10px;}
+.stat.Kritik{color:#ff4444;}
+.stat.Lob{color:#00ff99;}
+.stat.Frage{color:#00bfff;}
+.stat.Vorschlag{color:#ffaa00;}
 
-input, button {
-  padding: 14px;
-  border-radius: 10px;
-  border: none;
-  margin: 10px;
-  width: 80%;
-  max-width: 300px;
-}
+#onlineCount{text-align:center;margin:10px;color:#00ff99;}
 
-button {
-  background: #00ff99;
-  font-weight: bold;
-}
+#chat{max-width:700px;margin:auto;padding:10px;}
 
-#error { color: red; }
-
-#stats, #avg {
-  max-width: 700px;
-  margin: auto;
-  padding: 12px;
-  display: flex;
-  justify-content: space-around;
-  border-bottom: 1px solid #333;
-}
-
-.stat { font-weight: bold; }
-.stat.Kritik { color: #ff4444; }
-.stat.Lob { color: #00ff99; }
-.stat.Frage { color: #00bfff; }
-.stat.Vorschlag { color: #ffaa00; }
-
-#onlineCount {
-  text-align: center;
-  margin: 10px;
-  color: #00ff99;
-}
-
-#filters {
-  max-width: 700px;
-  margin: auto;
-  padding: 10px;
-  display: flex;
-  gap: 8px;
-}
-
-#filters button {
-  background: #222;
-  color: white;
-  flex: 1;
-}
-
-#filters button.active {
-  background: #00ff99;
-  color: black;
-}
-
-#chat {
-  max-width: 700px;
-  margin: auto;
-  padding: 10px;
-}
-
-.msg {
-  background: #1e1e1e;
-  margin: 10px 0;
-  padding: 14px;
-  border-radius: 14px;
-  border-left: 4px solid transparent;
-}
-
-.msg.Frage { border-left-color: #00bfff; }
-.msg.Lob { border-left-color: #00ff99; }
-.msg.Vorschlag { border-left-color: #ffaa00; }
-
-@keyframes glow {
-  0% { box-shadow: 0 0 5px currentColor; }
-  50% { box-shadow: 0 0 15px currentColor; }
-  100% { box-shadow: 0 0 5px currentColor; }
-}
-
-.msg.new {
-  animation: glow 1.5s infinite;
-}
-
-.type { font-weight: bold; margin-bottom: 6px; }
-.text { font-size: 16px; }
-
-.time {
-  font-size: 12px;
-  color: #888;
-  text-align: right;
-  margin-top: 8px;
-}
+.msg{background:#1e1e1e;margin:10px 0;padding:12px;border-radius:12px;}
 </style>
 
 </head>
@@ -122,171 +36,91 @@ button {
 <body>
 
 <div id="login">
-  <h2>Mitglieder Login</h2>
-  <input type="password" id="pw" placeholder="Passwort">
-  <button onclick="checkLogin()">Login</button>
-  <div id="error"></div>
+<h2>Mitglieder Login</h2>
+<input id="pw" type="password">
+<button onclick="login()">Login</button>
 </div>
 
 <script>
-const password = "5";
-const SESSION_TIME = 15 * 60 * 1000;
-
-let newMap = {};
-let lastSeen = JSON.parse(localStorage.getItem("seenMessages") || "[]");
-
-const loginTime = localStorage.getItem("loginTime");
-
-if (loginTime && (Date.now() - loginTime < SESSION_TIME)) {
-  startApp();
-}
-
-function checkLogin() {
-  const input = document.getElementById("pw").value;
-
-  if (input === password) {
-    localStorage.setItem("loginTime", Date.now());
-    startApp();
-  } else {
-    document.getElementById("error").innerText = "Falsches Passwort";
-  }
-}
-
-function startApp() {
-
-document.body.innerHTML = `
-<div id="stats">
-  <div class="stat Kritik">Kritik: 0</div>
-  <div class="stat Lob">Lob: 0</div>
-  <div class="stat Frage">Frage: 0</div>
-  <div class="stat Vorschlag">Vorschlag: 0</div>
-</div>
-
-<div id="onlineCount">👥 0 online</div>
-
-<div id="avg">Ø Bewertung: -</div>
-
-<div id="filters">
-  <button onclick="setFilter('all', this)" class="active">Alle</button>
-  <button onclick="setFilter('Frage', this)">Frage</button>
-  <button onclick="setFilter('Lob', this)">Lob</button>
-  <button onclick="setFilter('Vorschlag', this)">Vorschlag</button>
-</div>
-
-<div id="chat"></div>
-`;
-
-let currentFilter = "all";
-
-const url = "https://opensheet.elk.sh/1d2Xf-u1DOMsqlXmwMi05VDD9O6sR4OsmBnQnVqjqGzg/Sheet1";
-
-window.setFilter = function(filter, el) {
-  currentFilter = filter;
-  document.querySelectorAll("#filters button").forEach(btn => btn.classList.remove("active"));
-  el.classList.add("active");
-  load();
-}
-
-async function load() {
-  const res = await fetch(url);
-  const data = await res.json();
-
-  let stats = { Kritik:0, Lob:0, Frage:0, Vorschlag:0 };
-
-  let processed = data
-    .filter(row => row["Dein Feedback"])
-    .map(row => {
-      let type="", timeValue="";
-      for (let key in row) {
-        if (key.toLowerCase().includes("art")) type = row[key];
-        if (key.toLowerCase().includes("zeit")) timeValue = row[key];
-      }
-      if (stats[type] !== undefined) stats[type]++;
-      return { ...row, type, timeValue };
-    });
-
-  let filtered = processed.filter(r => r.type !== "Kritik");
-
-  const chat = document.getElementById("chat");
-  const now = Date.now();
-
-  chat.innerHTML = "";
-
-  filtered.slice(-30).reverse().forEach(row => {
-    const div = document.createElement("div");
-    div.className = "msg " + row.type;
-
-    const key = row.timeValue + row["Dein Feedback"];
-
-    if (!lastSeen.includes(key)) {
-      newMap[key] = now;
-      lastSeen.push(key);
-    }
-
-    if (newMap[key] && (now - newMap[key] < 15000)) {
-      div.classList.add("new");
-    }
-
-    const type = document.createElement("div");
-    type.className = "type " + row.type;
-    type.innerText = "● " + row.type;
-
-    const text = document.createElement("div");
-    text.className = "text";
-    text.innerText = row["Dein Feedback"];
-
-    const time = document.createElement("div");
-    time.className = "time";
-    time.innerText = row.timeValue || "-";
-
-    div.appendChild(type);
-    div.appendChild(text);
-    div.appendChild(time);
-    chat.appendChild(div);
-  });
-
-  localStorage.setItem("seenMessages", JSON.stringify(lastSeen));
-
-  document.querySelector(".stat.Kritik").innerText = "Kritik: " + stats.Kritik;
-  document.querySelector(".stat.Lob").innerText = "Lob: " + stats.Lob;
-  document.querySelector(".stat.Frage").innerText = "Frage: " + stats.Frage;
-  document.querySelector(".stat.Vorschlag").innerText = "Vorschlag: " + stats.Vorschlag;
-}
-
-setInterval(load, 3000);
-load();
-
-// 🔥 FIREBASE (MEMBERS!)
 const firebaseConfig = {
   apiKey: "AIzaSyCFjUj-XSN0YnvAilerXPkXbw2iR2ixBv8",
   authDomain: "kritik-system.firebaseapp.com",
   databaseURL: "https://kritik-system-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "kritik-system",
-  storageBucket: "kritik-system.firebasestorage.app",
-  messagingSenderId: "515871128284",
-  appId: "1:515871128284:web:2db651b4dc5a876a1c9219"
+  projectId: "kritik-system"
 };
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// 👉 Mitglieder zählen sich selbst
-const userRef = db.ref("members").push();
-userRef.set(true);
-userRef.onDisconnect().remove();
+function login(){
+  if(document.getElementById("pw").value==="tesT333"){
+    start();
+  }
+}
 
-// 👉 Anzeige
-db.ref("members").on("value", (snapshot) => {
-  const count = snapshot.numChildren();
-  document.getElementById("onlineCount").innerText = "👥 " + count + " online";
+function start(){
+
+document.body.innerHTML = `
+<div id="stats">
+<div class="stat Kritik">Kritik: 0</div>
+<div class="stat Lob">Lob: 0</div>
+<div class="stat Frage">Frage: 0</div>
+<div class="stat Vorschlag">Vorschlag: 0</div>
+</div>
+
+<div id="onlineCount">👥 0 online</div>
+
+<div id="chat"></div>
+`;
+
+const url="https://opensheet.elk.sh/1d2Xf-u1DOMsqlXmwMi05VDD9O6sR4OsmBnQnVqjqGzg/Sheet1";
+
+// 👥 MEMBERS
+const ref = db.ref("members").push();
+ref.set(true);
+ref.onDisconnect().remove();
+
+db.ref("members").on("value", snap=>{
+document.getElementById("onlineCount").innerText="👥 "+snap.numChildren()+" online";
 });
 
+async function load(){
+const res=await fetch(url);
+const data=await res.json();
+
+let stats={Kritik:0,Lob:0,Frage:0,Vorschlag:0};
+
+let filtered=data.filter(r=>r["Dein Feedback"]);
+
+const chat=document.getElementById("chat");
+chat.innerHTML="";
+
+filtered.slice(-20).reverse().forEach(r=>{
+let type="";
+for(let k in r){
+if(k.toLowerCase().includes("art")) type=r[k];
+}
+
+if(stats[type]!=undefined) stats[type]++;
+
+if(type==="Kritik") return; // ❌ ausblenden
+
+const div=document.createElement("div");
+div.className="msg";
+div.innerHTML="<b>"+type+"</b><br>"+r["Dein Feedback"];
+chat.appendChild(div);
+});
+
+document.querySelector(".stat.Kritik").innerText="Kritik: "+stats.Kritik;
+document.querySelector(".stat.Lob").innerText="Lob: "+stats.Lob;
+document.querySelector(".stat.Frage").innerText="Frage: "+stats.Frage;
+document.querySelector(".stat.Vorschlag").innerText="Vorschlag: "+stats.Vorschlag;
+}
+
+setInterval(load,3000);
+load();
 }
 </script>
-
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
 </body>
 </html>
