@@ -92,7 +92,6 @@ button {
   padding: 14px;
   border-radius: 14px;
   border-left: 4px solid transparent;
-  transition: 0.2s;
 }
 
 /* Farben */
@@ -100,7 +99,7 @@ button {
 .msg.Lob { border-left-color: #00ff99; }
 .msg.Vorschlag { border-left-color: #ffaa00; }
 
-/* 🔥 Leucht-Effekt */
+/* 🔥 Glow */
 @keyframes glow {
   0% { box-shadow: 0 0 5px currentColor; }
   50% { box-shadow: 0 0 15px currentColor; }
@@ -144,11 +143,11 @@ button {
 </div>
 
 <script>
-const password = "5";
+const password = "tesT333";
 const SESSION_TIME = 15 * 60 * 1000;
 
-let lastCount = 0;
 let newMap = {};
+let lastSeen = JSON.parse(localStorage.getItem("seenMessages") || "[]");
 
 const loginTime = localStorage.getItem("loginTime");
 
@@ -222,14 +221,6 @@ async function load() {
 
   const chat = document.getElementById("chat");
   const now = Date.now();
-  const newCount = filtered.length - lastCount;
-
-  if (newCount > 0) {
-    filtered.slice(-newCount).forEach(row => {
-      const key = row.timeValue + row["Dein Feedback"];
-      newMap[key] = now;
-    });
-  }
 
   chat.innerHTML = "";
 
@@ -238,6 +229,11 @@ async function load() {
     div.className = "msg " + row.type;
 
     const key = row.timeValue + row["Dein Feedback"];
+
+    if (!lastSeen.includes(key)) {
+      newMap[key] = now;
+      lastSeen.push(key);
+    }
 
     if (newMap[key] && (now - newMap[key] < 15000)) {
       div.classList.add("new");
@@ -261,12 +257,12 @@ async function load() {
     chat.appendChild(div);
   });
 
+  localStorage.setItem("seenMessages", JSON.stringify(lastSeen));
+
   document.querySelector(".stat.Kritik").innerText = "Kritik: " + stats.Kritik;
   document.querySelector(".stat.Lob").innerText = "Lob: " + stats.Lob;
   document.querySelector(".stat.Frage").innerText = "Frage: " + stats.Frage;
   document.querySelector(".stat.Vorschlag").innerText = "Vorschlag: " + stats.Vorschlag;
-
-  lastCount = filtered.length;
 }
 
 setInterval(load, 3000);
