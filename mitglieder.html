@@ -24,20 +24,25 @@ body {
 }
 
 input {
-  padding: 10px;
-  border-radius: 8px;
+  padding: 14px;
+  border-radius: 10px;
   border: none;
   margin: 10px;
-  width: 200px;
+  width: 80%;
+  max-width: 300px;
+  font-size: 16px;
 }
 
 button {
   background: #00ff99;
   border: none;
-  padding: 10px 20px;
-  border-radius: 8px;
+  padding: 14px;
+  border-radius: 10px;
   cursor: pointer;
   font-weight: bold;
+  width: 80%;
+  max-width: 300px;
+  font-size: 16px;
 }
 
 #error {
@@ -45,14 +50,15 @@ button {
   margin-top: 10px;
 }
 
-/* APP */
-#stats, #avg, #filters {
-  max-width: 600px;
+/* HEADER */
+#stats, #avg {
+  max-width: 700px;
   margin: auto;
-  padding: 10px;
+  padding: 12px;
   display: flex;
   justify-content: space-around;
   border-bottom: 1px solid #333;
+  font-size: 14px;
 }
 
 .stat { font-weight: bold; }
@@ -60,10 +66,20 @@ button {
 .stat.Frage { color: #00bfff; }
 .stat.Vorschlag { color: #ffaa00; }
 
+/* FILTER */
+#filters {
+  max-width: 700px;
+  margin: auto;
+  padding: 10px;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+}
+
 #filters button {
   background: #222;
   color: white;
-  margin: 2px;
+  flex: 1;
 }
 
 #filters button.active {
@@ -71,20 +87,21 @@ button {
   color: black;
 }
 
+/* CHAT */
 #chat {
-  max-width: 600px;
+  max-width: 700px;
   margin: auto;
-  padding: 15px;
+  padding: 10px;
 }
 
 .msg {
   background: #1e1e1e;
-  margin: 8px 0;
-  padding: 12px;
-  border-radius: 12px;
+  margin: 10px 0;
+  padding: 14px;
+  border-radius: 14px;
 }
 
-.type { font-weight: bold; margin-bottom: 5px; }
+.type { font-weight: bold; margin-bottom: 6px; font-size: 14px; }
 .dot { margin-right: 6px; }
 
 .type.Frage { color: #00bfff; }
@@ -96,12 +113,13 @@ button {
   margin-left: 8px;
 }
 
-.text { font-size: 1em; }
+.text { font-size: 16px; margin-top: 5px; }
 
 .time {
-  font-size: 0.9em;
+  font-size: 12px;
   color: #00ff99;
   text-align: right;
+  margin-top: 8px;
 }
 </style>
 
@@ -119,10 +137,16 @@ button {
 <script>
 const password = "5";
 
+/* 🔥 AUTO LOGIN */
+if (localStorage.getItem("login") === "true") {
+  startApp();
+}
+
 function checkLogin() {
   const input = document.getElementById("pw").value;
 
   if (input === password) {
+    localStorage.setItem("login", "true"); // merken
     startApp();
   } else {
     document.getElementById("error").innerText = "Falsches Passwort";
