@@ -6,8 +6,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vorstand</title>
 
-<!-- 🔥 Firebase zuerst -->
-
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
@@ -117,10 +115,12 @@ document.body.innerHTML = `
 
 const url="https://opensheet.elk.sh/1d2Xf-u1DOMsqlXmwMi05VDD9O6sR4OsmBnQnVqjqGzg/Sheet1";
 
-// 👔 Vorstand zählen
-const ref = db.ref("admins").push();
-ref.set(true);
-ref.onDisconnect().remove();
+// 👔 Vorstand zählen (sauber)
+const adminRef = db.ref("admins").push();
+adminRef.set(true);
+
+// 🔥 WICHTIG: sauber entfernen bei verlassen
+adminRef.onDisconnect().remove();
 
 // 👥 Mitglieder anzeigen
 db.ref("members").on("value", snap=>{
