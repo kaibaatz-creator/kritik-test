@@ -14,6 +14,38 @@ body {
   color: white;
 }
 
+/* LOGIN */
+#login {
+  display: flex;
+  height: 100vh;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+}
+
+input {
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+  margin: 10px;
+  width: 200px;
+}
+
+button {
+  background: #00ff99;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+#error {
+  color: red;
+  margin-top: 10px;
+}
+
+/* APP */
 #stats, #avg, #filters {
   max-width: 600px;
   margin: auto;
@@ -28,16 +60,13 @@ body {
 .stat.Frage { color: #00bfff; }
 .stat.Vorschlag { color: #ffaa00; }
 
-button {
+#filters button {
   background: #222;
   color: white;
-  border: none;
-  padding: 6px 10px;
-  border-radius: 6px;
-  cursor: pointer;
+  margin: 2px;
 }
 
-button.active {
+#filters button.active {
   background: #00ff99;
   color: black;
 }
@@ -80,14 +109,24 @@ button.active {
 
 <body>
 
+<div id="login">
+  <h2>Mitglieder Login</h2>
+  <input type="password" id="pw" placeholder="Passwort eingeben">
+  <button onclick="checkLogin()">Login</button>
+  <div id="error"></div>
+</div>
+
 <script>
 const password = "tesT333";
-const input = prompt("Passwort:");
 
-if (input === password) {
-  startApp();
-} else {
-  document.body.innerHTML = "<h1 style='text-align:center;margin-top:50px;'>Zugriff verweigert</h1>";
+function checkLogin() {
+  const input = document.getElementById("pw").value;
+
+  if (input === password) {
+    startApp();
+  } else {
+    document.getElementById("error").innerText = "Falsches Passwort";
+  }
 }
 
 function startApp() {
@@ -126,7 +165,7 @@ function getStars(num) {
 
 window.setFilter = function(filter, el) {
   currentFilter = filter;
-  document.querySelectorAll("button").forEach(btn => btn.classList.remove("active"));
+  document.querySelectorAll("#filters button").forEach(btn => btn.classList.remove("active"));
   el.classList.add("active");
   load();
 }
