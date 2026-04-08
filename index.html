@@ -112,8 +112,6 @@ button{
 .type{font-weight:bold;margin-bottom:6px;}
 .time{font-size:12px;color:#888;text-align:right;margin-top:8px;}
 
-/* 🔥 FIX: eigene Animationen pro Farbe */
-
 /* 🔵 Frage */
 @keyframes blinkBlue {
   0% { border-color: #00bfff; }
@@ -125,7 +123,7 @@ button{
   animation: blinkBlue 1s infinite;
 }
 
-/* 🔴 Kritik (stärker!) */
+/* 🔴 Kritik */
 @keyframes blinkRed {
   0% { border-color: #ff4444; }
   50% { border-color: transparent; }
@@ -229,7 +227,7 @@ document.body.innerHTML = `
 
 let currentFilter="all";
 let blinkMap = {};
-let lastCount = 0;
+let lastCount = null; // 🔥 FIX
 
 window.setFilter=function(filter,el){
   currentFilter=filter;
@@ -282,6 +280,12 @@ async function load(){
   }
 
   const now = Date.now();
+
+  // 🔥 verhindert Blinken beim ersten Laden
+  if (lastCount === null) {
+    lastCount = filtered.length;
+  }
+
   const newMessages = filtered.length - lastCount;
 
   if (newMessages > 0) {
