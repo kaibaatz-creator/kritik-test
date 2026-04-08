@@ -63,26 +63,10 @@ button{
   border-radius:10px;
 }
 
+.stat.Kritik{color:#ff4444;}
 .stat.Lob{color:#00ff99;}
 .stat.Frage{color:#00bfff;}
 .stat.Vorschlag{color:#ffaa00;}
-
-#filters{
-  display:flex;
-  gap:6px;
-  padding:10px;
-}
-
-#filters button{
-  flex:1;
-  background:#222;
-  color:white;
-}
-
-#filters button.active{
-  background:#00ff99;
-  color:black;
-}
 
 #chat{
   max-width:700px;
@@ -105,9 +89,7 @@ button{
 .type{font-weight:bold;margin-bottom:6px;}
 .time{font-size:12px;color:#888;text-align:right;margin-top:8px;}
 
-/* BLINKEN */
-
-/* Blau */
+/* 🔵 Frage */
 @keyframes blinkBlue {
   0% { border-color: #00bfff; }
   50% { border-color: transparent; }
@@ -118,7 +100,7 @@ button{
   animation: blinkBlue 1s infinite;
 }
 
-/* Grün */
+/* 🟢 Lob */
 @keyframes blinkGreen {
   0% { border-color: #00ff99; }
   50% { border-color: transparent; }
@@ -129,7 +111,7 @@ button{
   animation: blinkGreen 1s infinite;
 }
 
-/* Orange */
+/* 🟠 Vorschlag */
 @keyframes blinkOrange {
   0% { border-color: #ffaa00; }
   50% { border-color: transparent; }
@@ -190,42 +172,28 @@ document.body.innerHTML = `
 </div>
 
 <div id="stats">
+  <div class="stat Kritik">Kritik: 0</div>
   <div class="stat Lob">Lob: 0</div>
   <div class="stat Frage">Frage: 0</div>
   <div class="stat Vorschlag">Vorschlag: 0</div>
 </div>
 
-<div id="filters">
-  <button class="active" onclick="setFilter('all', this)">Alle</button>
-  <button onclick="setFilter('Frage', this)">Frage</button>
-  <button onclick="setFilter('Lob', this)">Lob</button>
-  <button onclick="setFilter('Vorschlag', this)">Vorschlag</button>
-</div>
-
 <div id="chat"></div>
 `;
 
-let currentFilter="all";
 let blinkMap = {};
-let lastCount = 0;
-
-window.setFilter=function(filter,el){
-  currentFilter=filter;
-  document.querySelectorAll("#filters button").forEach(b=>b.classList.remove("active"));
-  el.classList.add("active");
-  load();
-}
+let lastCount = null; // wichtig!
 
 // Firebase
-const memberRef=db.ref("members").push();
-memberRef.set(true);
-memberRef.onDisconnect().remove();
+const ref = db.ref("members").push();
+ref.set(true);
+ref.onDisconnect().remove();
 
-db.ref("members").on("value",snap=>{
+db.ref("members").on("value", snap=>{
   document.getElementById("members").innerText="👥 Mitglieder: "+snap.numChildren();
 });
 
-db.ref("admins").on("value",snap=>{
+db.ref("admins").on("value", snap=>{
   document.getElementById("admins").innerText="👔 Vorstand: "+snap.numChildren();
 });
 
@@ -235,7 +203,7 @@ async function load(){
   const res=await fetch(url);
   const data=await res.json();
 
-  let stats={Lob:0,Frage:0,Vorschlag:0};
+  let stats={Kritik:0,Lob:0,Frage:0,Vorschlag:0};
 
   let filtered=data.filter(r=>r["Dein Feedback"]).map(r=>{
     let type="",time="";
@@ -243,17 +211,19 @@ async function load(){
       if(k.toLowerCase().includes("art")) type=r[k];
       if(k.toLowerCase().includes("zeit")) time=r[k];
     }
-    if(type==="Kritik") return null;
-
     if(stats[type]!=undefined) stats[type]++;
     return {...r,type,time};
-  }).filter(Boolean);
+  });
 
-  if(currentFilter!=="all"){
-    filtered=filtered.filter(r=>r.type===currentFilter);
-  }
+  // ❌ Kritik raus
+  filtered = filtered.filter(r=>r.type!=="Kritik");
 
   const now = Date.now();
+
+  if (lastCount === null) {
+    lastCount = filtered.length; // verhindert Blinken beim Reload
+  }
+
   const newMessages = filtered.length - lastCount;
 
   if (newMessages > 0) {
@@ -263,6 +233,7 @@ async function load(){
     });
   }
 
+  document.querySelector(".stat.Kritik").innerText="Kritik: "+stats.Kritik;
   document.querySelector(".stat.Lob").innerText="Lob: "+stats.Lob;
   document.querySelector(".stat.Frage").innerText="Frage: "+stats.Frage;
   document.querySelector(".stat.Vorschlag").innerText="Vorschlag: "+stats.Vorschlag;
