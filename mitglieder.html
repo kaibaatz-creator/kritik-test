@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Feedback Übersicht</title>
+
+<style>
+body {
+  margin: 0;
+  background: #0f0f0f;
+  font-family: Arial;
+  color: white;
+}
+
+#stats, #avg, #filters {
+  max-width: 600px;
+  margin: auto;
+  padding: 10px;
+  display: flex;
+  justify-content: space-around;
+  border-bottom: 1px solid #333;
+}
+
+.stat { font-weight: bold; }
+.stat.Lob { color: #00ff99; }
+.stat.Frage { color: #00bfff; }
+.stat.Vorschlag { color: #ffaa00; }
+
+button {
+  background: #222;
+  color: white;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+button.active {
+  background: #00ff99;
+  color: black;
+}
+
+#chat {
+  max-width: 600px;
+  margin: auto;
+  padding: 15px;
+}
+
+.msg {
+  background: #1e1e1e;
+  margin: 8px 0;
+  padding: 12px;
+  border-radius: 12px;
+}
+
+.type { font-weight: bold; margin-bottom: 5px; }
+.dot { margin-right: 6px; }
+
+.type.Frage { color: #00bfff; }
+.type.Lob { color: #00ff99; }
+.type.Vorschlag { color: #ffaa00; }
+
+.stars {
+  color: gold;
+  margin-left: 8px;
+}
+
+.text { font-size: 1em; }
+
+.time {
+  font-size: 0.9em;
+  color: #00ff99;
+  text-align: right;
+}
+</style>
+
+</head>
+
+<body>
+
+<div id="stats">
+  <div class="stat Lob">Lob: 0</div>
+  <div class="stat Frage">Frage: 0</div>
+  <div class="stat Vorschlag">Vorschlag: 0</div>
+</div>
+
+<div id="avg">Ø Bewertung: -</div>
+
+<div id="filters">
+  <button onclick="setFilter('all', this)" class="active">Alle</button>
+  <button onclick="setFilter('Frage', this)">Frage</button>
+  <button onclick="setFilter('Lob', this)">Lob</button>
+  <button onclick="setFilter('Vorschlag', this)">Vorschlag</button>
+</div>
+
+<div id="chat"></div>
+
+<script>
+let currentFilter = "all";
+
+const url = "https://opensheet.elk.sh/1d2Xf-u1DOMsqlXmwMi05VDD9O6sR4OsmBnQnVqjqGzg/Sheet1";
+
+function getStars(num) {
+  let stars = "";
+  num = parseInt(num);
+  for (let i = 1; i <= 5; i++) {
+    stars += i <= num ? "★" : "☆";
+  }
+  return stars;
+}
+
+function setFilter(filter, el) {
+  currentFilter = filter;
+  document.querySelectorAll("button").forEach(btn => btn.classList.remove("active"));
+  el.classList.add("active");
+  load();
+}
+
+async function load() {
+  const res = await fetch(url);
+  const data = await res.json();
+
+  let stats = { Lob:0, Frage:0, Vorschlag:0 };
+
+  let filtered = data
+    .filter(row => row["Dein Feedback"])
+    .map(row => {
+      let type="", rating="", timeValue="";
+      for (let key in row) {
+        if (key.toLowerCase().includes("art")) type = row[key];
+        if (key.toLowerCase().includes("wie")) rating = parseInt(row[key]);
+        if (key.toLowerCase().includes("zeit")) timeValue = row[key];
+      }
+      return { ...row, type, rating, timeValue };
+    })
+    .filter(row => row.type !== "Kritik"); // 🔥 Kritik raus
+
+  filtered.forEach(r => {
+    if (stats[r.type] !== undefined) stats[r.type]++;
+  });
+
+  document.querySelector(".stat.Lob").innerText = "Lob: " + stats.Lob;
+  document.querySelector(".stat.Frage").innerText = "Frage: " + stats.Frage;
+  document.querySelector(".stat.Vorschlag").innerText = "Vorschlag: " + stats.Vorschlag;
+
+  if (currentFilter !== "all") {
+    filtered = filtered.filter(r => r.type === currentFilter);
+  }
+
+  const ratings = filtered.map(r => r.rating).filter(r => !isNaN(r));
+  let avg = "-";
+  if (ratings.length > 0) {
+    const sum = ratings.reduce((a,b)=>a+b,0);
+    avg = getStars(Math.round(sum / ratings.length));
+  }
+
+  document.getElementById("avg").innerText = "Ø Bewertung: " + avg;
+
+  const chat = document.getElementById("chat");
+  chat.innerHTML = "";
+
+  filtered.slice(-30).reverse().forEach(row => {
+    const div = document.createElement("div");
+    div.className = "msg";
+
+    const type = document.createElement("div");
+    type.className = "type " + row.type;
+
+    const dot = document.createElement("span");
+    dot.className = "dot";
+    dot.innerText = "●";
+
+    type.appendChild(dot);
+    type.appendChild(document.createTextNode(row.type || "Unbekannt"));
+
+    if (row.rating) {
+      const stars = document.createElement("span");
+      stars.className = "stars";
+      stars.innerText = getStars(row.rating);
+      type.appendChild(stars);
+    }
+
+    const text = document.createElement("div");
+    text.className = "text";
+    text.innerText = row["Dein Feedback"];
+
+    const time = document.createElement("div");
+    time.className = "time";
+    time.innerText = row.timeValue || "-";
+
+    div.appendChild(type);
+    div.appendChild(text);
+    div.appendChild(time);
+    chat.appendChild(div);
+  });
+}
+
+setInterval(load, 3000);
+load();
+</script>
+
+</body>
+</html>
