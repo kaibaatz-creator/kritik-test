@@ -1,1 +1,93 @@
+```html
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vorstand System</title>
 
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+<style>
+body {
+  margin: 0;
+  background: #111;
+  color: white;
+  font-family: Arial;
+}
+
+#login {
+  display:flex;
+  height:100vh;
+  justify-content:center;
+  align-items:center;
+  flex-direction:column;
+}
+
+input,button{
+  padding:12px;
+  border-radius:10px;
+  border:none;
+  margin:8px;
+}
+
+button{
+  background:#00ff99;
+  font-weight:bold;
+}
+
+.header{
+  text-align:center;
+  padding:15px;
+  font-size:20px;
+  border-bottom:1px solid #333;
+}
+
+#chat{
+  max-width:700px;
+  margin:auto;
+  padding:10px;
+}
+</style>
+</head>
+
+<body>
+
+<div id="login">
+  <h2>Login</h2>
+  <input id="pw" type="password" placeholder="Passwort">
+  <button onclick="login()">Login</button>
+</div>
+
+<script>
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCFjuJ-XSN0YnvAilerXPkXbw2iR2ixBv8",
+  authDomain: "kritik-system.firebaseapp.com",
+  databaseURL: "https://kritik-system-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "kritik-system"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+function login(){
+  if(document.getElementById("pw").value==="1234"){
+    start();
+  }
+}
+
+function start(){
+
+document.body.innerHTML = `
+<div class="header">📊 Vorstand Live</div>
+<div id="chat">LÄUFT ✅</div>
+`;
+
+}
+</script>
+
+</body>
+</html>
+```
