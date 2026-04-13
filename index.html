@@ -16,31 +16,16 @@ body {
   color: white;
 }
 
-#login {
-  display:flex;
-  height:100vh;
-  justify-content:center;
-  align-items:center;
-  flex-direction:column;
-}
-
-input,button{
-  padding:12px;
-  border-radius:10px;
-  border:none;
-  margin:8px;
-}
-
-button{
-  background:#00ff99;
-  font-weight:bold;
-}
-
 .header{
   text-align:center;
   padding:15px;
   font-size:20px;
   border-bottom:1px solid #333;
+}
+
+#counts{
+  text-align:center;
+  margin:10px;
 }
 
 #stats{
@@ -65,6 +50,9 @@ button{
   flex:1;
   background:#222;
   color:white;
+  border:none;
+  padding:10px;
+  border-radius:10px;
 }
 
 #filters button.active{
@@ -84,38 +72,23 @@ button{
   padding:14px;
   border-radius:14px;
 }
+
+.msg.Frage{border-left:4px solid #00bfff;}
+.msg.Kritik{border-left:4px solid #ff4444;}
+.msg.Lob{border-left:4px solid #00ff99;}
+.msg.Vorschlag{border-left:4px solid #ffaa00;}
 </style>
 </head>
 
 <body>
 
-<div id="login">
-  <h2>Login</h2>
-  <input id="pw" type="password" placeholder="Passwort">
-  <button onclick="login()">Login</button>
-</div>
-
-<script>
-
-const firebaseConfig = {
-  apiKey: "AIzaSyCFjuJ-XSN0YnvAilerXPkXbw2iR2ixBv8",
-  authDomain: "kritik-system.firebaseapp.com",
-  databaseURL: "https://kritik-system-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "kritik-system"
-};
-
-firebase.initializeApp(firebaseConfig);
-
-function login(){
-  if(document.getElementById("pw").value==="1234"){
-    start();
-  }
-}
-
-function start(){
-
-document.body.innerHTML = `
 <div class="header">📊 Vorstand Live Feedback</div>
+
+<div id="counts">
+  <div id="members">👥 Mitglieder: 0</div>
+  <div id="admins">👔 Vorstand: 0</div>
+  <div id="status">⏳ wird geprüft...</div>
+</div>
 
 <div id="stats">
   <div class="stat Kritik">Kritik: 0</div>
@@ -133,17 +106,53 @@ document.body.innerHTML = `
 </div>
 
 <div id="chat"></div>
-`;
 
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyCFjuJ-XSN0YnvAilerXPkXbw2iR2ixBv8",
+  authDomain: "kritik-system.firebaseapp.com",
+  databaseURL: "https://kritik-system-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "kritik-system"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// 👔 Vorstand registrieren
+const adminRef = db.ref("admins").push();
+adminRef.set(true);
+adminRef.onDisconnect().remove();
+
+// 👥 Mitglieder zählen
+db.ref("members").on("value",snap=>{
+  document.getElementById("members").innerText="👥 Mitglieder: "+snap.numChildren();
+});
+
+// 👔 Vorstand zählen + Status
+const MAX_ADMINS = 5;
+
+db.ref("admins").on("value",snap=>{
+  let count=snap.numChildren();
+  document.getElementById("admins").innerText="👔 Vorstand: "+count;
+
+  if(count>=MAX_ADMINS){
+    document.getElementById("status").innerText="✅ Vorstand vollständig";
+  }else{
+    document.getElementById("status").innerText="❌ Vorstand fehlt ("+count+"/"+MAX_ADMINS+")";
+  }
+});
+
+// Filter
 let currentFilter="all";
 
-window.setFilter=function(filter,el){
+function setFilter(filter,el){
   currentFilter=filter;
   document.querySelectorAll("#filters button").forEach(b=>b.classList.remove("active"));
   el.classList.add("active");
   load();
 }
 
+// 📡 Feedback laden
 const url="https://opensheet.elk.sh/1d2Xf-u1DOMsqlXmwMi05VDD9O6sR4OsmBnQnVqjqGzg/Sheet1";
 
 async function load(){
@@ -177,12 +186,12 @@ async function load(){
 
   display.slice(-30).reverse().forEach(r=>{
     const div=document.createElement("div");
-    div.className="msg";
+    div.className="msg "+r.type;
 
     div.innerHTML=`
-      <div><b>${r.type}</b></div>
-      <div>${r["Dein Feedback"]}</div>
-      <div style="font-size:12px;color:#888;">${r.time || "-"}</div>
+      <b>${r.type}</b><br>
+      ${r["Dein Feedback"]}<br>
+      <span style="font-size:12px;color:#888">${r.time||"-"}</span>
     `;
 
     chat.appendChild(div);
@@ -191,7 +200,6 @@ async function load(){
 
 setInterval(load,3000);
 load();
-}
 </script>
 
 </body>
