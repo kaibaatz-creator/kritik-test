@@ -81,13 +81,14 @@ body {
 </head>
 
 <body>
-
+function start(){
+document.body.innerHTML = `
 <div class="header">📊 Vorstand Live Feedback</div>
 
 <div id="counts">
   <div id="members">👥 Mitglieder: 0</div>
   <div id="admins">👔 Vorstand: 0</div>
-  <div id="status">⏳ wird geprüft...</div>
+  <div id="status"></div>
 </div>
 
 <div id="stats">
@@ -106,6 +107,7 @@ body {
 </div>
 
 <div id="chat"></div>
+`;
 
 <script>
 const firebaseConfig = {
@@ -120,7 +122,11 @@ const db = firebase.database();
 
 // 👔 Vorstand registrieren
 const adminRef = db.ref("admins").push();
-adminRef.set(true);
+
+adminRef.set(true)
+.then(() => console.log("✅ Admin gesetzt"))
+.catch(err => console.error("❌ Fehler:", err));
+
 adminRef.onDisconnect().remove();
 
 // 👥 Mitglieder zählen
