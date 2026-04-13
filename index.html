@@ -104,6 +104,8 @@ button{
 </div>
 
 <script>
+window.onload = function(){
+
 const firebaseConfig = {
   apiKey: "AIzaSyCFjuJ-XSN0YnvAilerXPkXbw2iR2ixBv8",
   authDomain: "kritik-system.firebaseapp.com",
@@ -117,18 +119,16 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// 🔥 Login merken
 firebase.auth().onAuthStateChanged(user => {
   if(user){
     start();
   }
 });
 
-// 🔐 Login
-function login(){
+window.login = function(){
   const pw = document.getElementById("pw").value;
 
-  if(pw === "1234"){ // ← Passwort hier ändern
+  if(pw === "1234"){
     firebase.auth().signInAnonymously()
       .catch(err => alert(err.message));
   } else {
@@ -136,7 +136,6 @@ function login(){
   }
 }
 
-// 👔 Start UI
 function start(){
 
 document.body.innerHTML = `
@@ -165,7 +164,6 @@ db.ref("admins").on("value",snap=>{
   document.getElementById("admins").innerText="👔 Vorstand: "+snap.numChildren();
 });
 
-// 📡 Google Sheet
 const url="https://opensheet.elk.sh/1d2Xf-u1DOMsqlXmwMi05VDD9O6sR4OsmBnQnVqjqGzg/Sheet1";
 
 async function load(){
@@ -191,9 +189,9 @@ async function load(){
     const div=document.createElement("div");
     div.className="msg "+type;
 
-    const typeDiv=document.createElement("div");
-    typeDiv.className="type";
-    typeDiv.textContent="● "+type;
+    const t=document.createElement("div");
+    t.className="type";
+    t.textContent="● "+type;
 
     const text=document.createElement("div");
     text.textContent=r["Dein Feedback"];
@@ -202,7 +200,7 @@ async function load(){
     timeDiv.className="time";
     timeDiv.textContent=time || "-";
 
-    div.appendChild(typeDiv);
+    div.appendChild(t);
     div.appendChild(text);
     div.appendChild(timeDiv);
 
@@ -217,6 +215,8 @@ async function load(){
 
 setInterval(load,3000);
 load();
+}
+
 }
 </script>
 
