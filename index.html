@@ -119,8 +119,20 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
+
+const SESSION_TIME = 10 * 60 * 1000; // 10 Minuten
+
+const loginTime = localStorage.getItem("loginTimeAdmin");
+
+if (loginTime && (Date.now() - loginTime < SESSION_TIME)) {
+  start();
+} else {
+  localStorage.removeItem("loginTimeAdmin");
+}
+
 function login(){
   if(document.getElementById("pw").value==="1"){
+    localStorage.setItem("loginTimeAdmin", Date.now());
     start();
   } else {
     document.getElementById("error").innerText="❌ Falsches Passwort";
