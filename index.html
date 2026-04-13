@@ -55,6 +55,23 @@ button{
   border-radius:10px;
 }
 
+#filters{
+  display:flex;
+  gap:6px;
+  padding:10px;
+}
+
+#filters button{
+  flex:1;
+  background:#222;
+  color:white;
+}
+
+#filters button.active{
+  background:#00ff99;
+  color:black;
+}
+
 #chat{
   max-width:700px;
   margin:auto;
@@ -101,15 +118,79 @@ document.body.innerHTML = `
 <div class="header">📊 Vorstand Live Feedback</div>
 
 <div id="stats">
-  <div class="stat">Kritik: 0</div>
-  <div class="stat">Lob: 0</div>
-  <div class="stat">Frage: 0</div>
-  <div class="stat">Vorschlag: 0</div>
+  <div class="stat Kritik">Kritik: 0</div>
+  <div class="stat Lob">Lob: 0</div>
+  <div class="stat Frage">Frage: 0</div>
+  <div class="stat Vorschlag">Vorschlag: 0</div>
 </div>
 
-<div id="chat">System läuft 🚀</div>
+<div id="filters">
+  <button class="active" onclick="setFilter('all', this)">Alle</button>
+  <button onclick="setFilter('Frage', this)">Frage</button>
+  <button onclick="setFilter('Kritik', this)">Kritik</button>
+  <button onclick="setFilter('Lob', this)">Lob</button>
+  <button onclick="setFilter('Vorschlag', this)">Vorschlag</button>
+</div>
+
+<div id="chat"></div>
 `;
 
+let currentFilter="all";
+
+window.setFilter=function(filter,el){
+  currentFilter=filter;
+  document.querySelectorAll("#filters button").forEach(b=>b.classList.remove("active"));
+  el.classList.add("active");
+  load();
+}
+
+const url="https://opensheet.elk.sh/1d2Xf-u1DOMsqlXmwMi05VDD9O6sR4OsmBnQnVqjqGzg/Sheet1";
+
+async function load(){
+  const res=await fetch(url);
+  const data=await res.json();
+
+  let stats={Kritik:0,Lob:0,Frage:0,Vorschlag:0};
+
+  let all=data.map(r=>{
+    let type="",time="";
+    for(let k in r){
+      if(k.toLowerCase().includes("art")) type=r[k];
+      if(k.toLowerCase().includes("zeit")) time=r[k];
+    }
+    if(stats[type]!=undefined) stats[type]++;
+    return {...r,type,time};
+  });
+
+  let display = all;
+  if(currentFilter!=="all"){
+    display = all.filter(r=>r.type===currentFilter);
+  }
+
+  document.querySelector(".stat.Kritik").innerText="Kritik: "+stats.Kritik;
+  document.querySelector(".stat.Lob").innerText="Lob: "+stats.Lob;
+  document.querySelector(".stat.Frage").innerText="Frage: "+stats.Frage;
+  document.querySelector(".stat.Vorschlag").innerText="Vorschlag: "+stats.Vorschlag;
+
+  const chat=document.getElementById("chat");
+  chat.innerHTML="";
+
+  display.slice(-30).reverse().forEach(r=>{
+    const div=document.createElement("div");
+    div.className="msg";
+
+    div.innerHTML=`
+      <div><b>${r.type}</b></div>
+      <div>${r["Dein Feedback"]}</div>
+      <div style="font-size:12px;color:#888;">${r.time || "-"}</div>
+    `;
+
+    chat.appendChild(div);
+  });
+}
+
+setInterval(load,3000);
+load();
 }
 </script>
 
