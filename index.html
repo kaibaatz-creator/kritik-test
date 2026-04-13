@@ -121,23 +121,21 @@ const db = firebase.database();
 
 // 🔐 10 Minuten Login merken
 const SESSION_TIME = 10 * 60 * 1000;
-const loginTime = localStorage.getItem("loginTimeAdmin");
+const loginTime = localStorage.getItem("loginTimeAdmin") || 0;
 
-if (loginTime && (Date.now() - loginTime < SESSION_TIME)) {
-  start();
-} else {
-  localStorage.removeItem("loginTimeAdmin");
-}
+// 🔥 Reset prüfen
+db.ref("settings/resetTime").once("value").then(snap=>{
+  const resetTime = snap.val() || 0;
 
-// 🔑 Login
-function login(){
-  if(document.getElementById("pw").value==="1"){
-    localStorage.setItem("loginTimeAdmin", Date.now());
+  if(loginTime < resetTime){
+    localStorage.removeItem("loginTimeAdmin");
+    location.reload();
+  } else if (loginTime && (Date.now() - loginTime < SESSION_TIME)) {
     start();
   } else {
-    document.getElementById("error").innerText="❌ Falsches Passwort";
+    localStorage.removeItem("loginTimeAdmin");
   }
-}
+});
 
 // 🚀 Start (Dashboard)
 function start(){
@@ -213,6 +211,10 @@ function kickAll(){
 
   if(pw === "Vorstand2026!"){
     db.ref("admins").remove();
+
+    // 🔥 NEU: Reset-Zeit setzen
+    db.ref("settings/resetTime").set(Date.now());
+
     alert("Alle wurden gekickt!");
   } else {
     alert("Falsches Passwort!");
