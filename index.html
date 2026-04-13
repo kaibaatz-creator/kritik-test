@@ -120,11 +120,21 @@ const db = firebase.database();
 // 👔 Vorstand registrieren
 const adminRef = db.ref("admins").push();
 
-adminRef.set(true)
-.then(() => console.log("✅ Admin gesetzt"))
-.catch(err => console.error("❌ Fehler:", err));
+function start(){
 
-adminRef.onDisconnect().remove();
+  // 👔 Vorstand registrieren
+  const adminRef = db.ref("admins").push();
+
+  adminRef.set(true)
+  .then(() => console.log("✅ Admin gesetzt"))
+  .catch(err => console.error("❌ Fehler:", err));
+
+  adminRef.onDisconnect().remove();
+
+  document.body.innerHTML = `
+  ...
+  `;
+}
 
 // 👥 Mitglieder zählen
 db.ref("members").on("value",snap=>{
