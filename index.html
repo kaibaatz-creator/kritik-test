@@ -1,9 +1,10 @@
+```html
 <!DOCTYPE html>
 <html lang="de">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vorstand System</title>
+<title>Vorstand Live Feedback</title>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
@@ -11,9 +12,9 @@
 <style>
 body {
   margin: 0;
-  background: #111;
-  color: white;
+  background: linear-gradient(180deg, #0f0f0f, #1a1a1a);
   font-family: Arial;
+  color: white;
 }
 
 #login {
@@ -43,10 +44,29 @@ button{
   border-bottom:1px solid #333;
 }
 
+#stats{
+  display:flex;
+  justify-content:space-around;
+  padding:10px;
+}
+
+.stat{
+  background:#1e1e1e;
+  padding:6px 10px;
+  border-radius:10px;
+}
+
 #chat{
   max-width:700px;
   margin:auto;
   padding:10px;
+}
+
+.msg{
+  background:#1e1e1e;
+  margin:10px 0;
+  padding:14px;
+  border-radius:14px;
 }
 </style>
 </head>
@@ -69,7 +89,6 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
 
 function login(){
   if(document.getElementById("pw").value==="1234"){
@@ -80,8 +99,16 @@ function login(){
 function start(){
 
 document.body.innerHTML = `
-<div class="header">📊 Vorstand Live</div>
-<div id="chat">LÄUFT ✅</div>
+<div class="header">📊 Vorstand Live Feedback</div>
+
+<div id="stats">
+  <div class="stat">Kritik: 0</div>
+  <div class="stat">Lob: 0</div>
+  <div class="stat">Frage: 0</div>
+  <div class="stat">Vorschlag: 0</div>
+</div>
+
+<div id="chat">System läuft 🚀</div>
 `;
 
 }
