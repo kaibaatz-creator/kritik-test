@@ -1,1 +1,225 @@
+```html
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vorstand Live Feedback</title>
 
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+
+<style>
+body {
+  margin: 0;
+  background: linear-gradient(180deg, #0f0f0f, #1a1a1a);
+  font-family: Arial;
+  color: white;
+}
+
+#login {
+  display:flex;
+  height:100vh;
+  justify-content:center;
+  align-items:center;
+  flex-direction:column;
+}
+
+input,button{
+  padding:12px;
+  border-radius:10px;
+  border:none;
+  margin:8px;
+}
+
+button{
+  background:#00ff99;
+  font-weight:bold;
+}
+
+#error{ color:red; }
+
+.header{
+  text-align:center;
+  padding:15px;
+  font-size:20px;
+  font-weight:bold;
+  border-bottom:1px solid #333;
+}
+
+#counts{
+  text-align:center;
+  margin:10px;
+}
+
+#stats{
+  display:flex;
+  justify-content:space-around;
+  padding:10px;
+}
+
+.stat{
+  background:#1e1e1e;
+  padding:6px 10px;
+  border-radius:10px;
+}
+
+.stat.Kritik{color:#ff4444;}
+.stat.Lob{color:#00ff99;}
+.stat.Frage{color:#00bfff;}
+.stat.Vorschlag{color:#ffaa00;}
+
+#chat{
+  max-width:700px;
+  margin:auto;
+  padding:10px;
+}
+
+.msg{
+  background:#1e1e1e;
+  margin:10px 0;
+  padding:14px;
+  border-radius:14px;
+  border-left:4px solid transparent;
+}
+
+.msg.Frage{border-left-color:#00bfff;}
+.msg.Kritik{border-left-color:#ff4444;}
+.msg.Lob{border-left-color:#00ff99;}
+.msg.Vorschlag{border-left-color:#ffaa00;}
+
+.type{font-weight:bold;margin-bottom:6px;}
+.time{font-size:12px;color:#888;text-align:right;margin-top:8px;}
+</style>
+</head>
+
+<body>
+
+<div id="login">
+  <h2>Vorstand Login</h2>
+  <input id="pw" type="password" placeholder="Passwort">
+  <button onclick="login()">Login</button>
+  <div id="error"></div>
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyCFjuJ-XSN0YnvAilerXPkXbw2iR2ixBv8",
+  authDomain: "kritik-system.firebaseapp.com",
+  databaseURL: "https://kritik-system-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "kritik-system",
+  storageBucket: "kritik-system.firebasestorage.app",
+  messagingSenderId: "515871128284",
+  appId: "1:515871128284:web:2db651b4dc5a876a1c9219"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// 🔥 Login merken
+firebase.auth().onAuthStateChanged(user => {
+  if(user){
+    start();
+  }
+});
+
+// 🔐 Login
+function login(){
+  const pw = document.getElementById("pw").value;
+
+  if(pw === "1234"){ // ← Passwort hier ändern
+    firebase.auth().signInAnonymously()
+      .catch(err => alert(err.message));
+  } else {
+    document.getElementById("error").innerText="❌ Falsches Passwort";
+  }
+}
+
+// 👔 Start UI
+function start(){
+
+document.body.innerHTML = `
+<div class="header">📊 Vorstand Live Feedback</div>
+
+<div id="counts">
+  <div id="admins">👔 Vorstand: 0</div>
+</div>
+
+<div id="stats">
+  <div class="stat Kritik">Kritik: 0</div>
+  <div class="stat Lob">Lob: 0</div>
+  <div class="stat Frage">Frage: 0</div>
+  <div class="stat Vorschlag">Vorschlag: 0</div>
+</div>
+
+<div id="chat"></div>
+`;
+
+const uid = firebase.auth().currentUser.uid;
+const adminRef = db.ref("admins/" + uid);
+adminRef.set(true);
+adminRef.onDisconnect().remove();
+
+db.ref("admins").on("value",snap=>{
+  document.getElementById("admins").innerText="👔 Vorstand: "+snap.numChildren();
+});
+
+// 📡 Google Sheet
+const url="https://opensheet.elk.sh/1d2Xf-u1DOMsqlXmwMi05VDD9O6sR4OsmBnQnVqjqGzg/Sheet1";
+
+async function load(){
+  const res=await fetch(url);
+  const data=await res.json();
+
+  let stats={Kritik:0,Lob:0,Frage:0,Vorschlag:0};
+
+  const chat=document.getElementById("chat");
+  chat.innerHTML="";
+
+  data.reverse().slice(0,30).forEach(r=>{
+    let type="";
+    let time="";
+
+    for(let k in r){
+      if(k.toLowerCase().includes("art")) type=r[k];
+      if(k.toLowerCase().includes("zeit")) time=r[k];
+    }
+
+    if(stats[type]!=undefined) stats[type]++;
+
+    const div=document.createElement("div");
+    div.className="msg "+type;
+
+    const typeDiv=document.createElement("div");
+    typeDiv.className="type";
+    typeDiv.textContent="● "+type;
+
+    const text=document.createElement("div");
+    text.textContent=r["Dein Feedback"];
+
+    const timeDiv=document.createElement("div");
+    timeDiv.className="time";
+    timeDiv.textContent=time || "-";
+
+    div.appendChild(typeDiv);
+    div.appendChild(text);
+    div.appendChild(timeDiv);
+
+    chat.appendChild(div);
+  });
+
+  document.querySelector(".stat.Kritik").innerText="Kritik: "+stats.Kritik;
+  document.querySelector(".stat.Lob").innerText="Lob: "+stats.Lob;
+  document.querySelector(".stat.Frage").innerText="Frage: "+stats.Frage;
+  document.querySelector(".stat.Vorschlag").innerText="Vorschlag: "+stats.Vorschlag;
+}
+
+setInterval(load,3000);
+load();
+}
+</script>
+
+</body>
+</html>
+```
