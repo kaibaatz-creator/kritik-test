@@ -11,9 +11,18 @@
 <style>
 body{margin:0;background:#000;color:white;font-family:Arial}
 
+/* LOGIN */
+#login{
+display:flex;
+height:100vh;
+justify-content:center;
+align-items:center;
+flex-direction:column;
+}
+
 /* HEADER */
 .header{text-align:center;padding:15px;border-bottom:1px solid #333}
-.logo{height:90px;display:block;margin:0 auto 10px}
+.logo{height:90px;margin:0 auto 10px;display:block}
 
 /* COUNTS */
 #counts{text-align:center;margin:10px}
@@ -32,24 +41,90 @@ body{margin:0;background:#000;color:white;font-family:Arial}
 #filters button.active{background:#00ff99;color:black}
 
 /* FORM */
-textarea{width:90%;max-width:400px;height:90px;border-radius:10px;padding:10px;border:none}
-button{padding:10px;border-radius:10px;border:none;margin:5px;background:#00ff99;font-weight:bold}
+textarea{
+width:90%;
+max-width:400px;
+height:90px;
+border-radius:10px;
+padding:10px;
+border:none;
+}
+button{
+padding:10px;
+border-radius:10px;
+border:none;
+margin:5px;
+background:#00ff99;
+font-weight:bold;
+}
 
 /* CHAT */
 #chat{max-width:700px;margin:auto;padding:10px}
-.msg{background:#1e1e1e;margin:10px 0;padding:14px;border-radius:14px;border-left:4px solid transparent}
+.msg{
+background:#1e1e1e;
+margin:10px 0;
+padding:14px;
+border-radius:14px;
+border-left:4px solid transparent;
+}
 .msg.Frage{border-left-color:#00bfff}
 .msg.Lob{border-left-color:#00ff99}
 .msg.Vorschlag{border-left-color:#ffaa00}
 
 /* BLINK */
-@keyframes blink {0%{opacity:1}50%{opacity:0.3}100%{opacity:1}}
+@keyframes blink{0%{opacity:1}50%{opacity:0.3}100%{opacity:1}}
 .new{animation:blink 1s infinite}
 </style>
 </head>
 
 <body>
 
+<div id="login">
+<h2>Mitglieder Login</h2>
+<input id="pw" type="password" placeholder="Passwort">
+<button onclick="login()">Login</button>
+<div id="error"></div>
+</div>
+
+<script>
+const firebaseConfig={
+apiKey:"AIzaSyCFjUj-XSN0YnvAilerXPkXbw2iR2ixBv8",
+authDomain:"kritik-system.firebaseapp.com",
+databaseURL:"https://kritik-system-default-rtdb.europe-west1.firebasedatabase.app",
+projectId:"kritik-system"
+};
+firebase.initializeApp(firebaseConfig);
+const db=firebase.database();
+
+// SESSION
+const SESSION=30*60*1000;
+const loginTime=localStorage.getItem("loginTimeMembers");
+
+if(loginTime && Date.now()-loginTime<SESSION){
+start();
+}
+
+// LOGIN
+function login(){
+if(document.getElementById("pw").value==="5"){
+localStorage.setItem("loginTimeMembers",Date.now());
+start();
+}else{
+document.getElementById("error").innerText="❌ Falsches Passwort";
+}
+}
+
+// START
+function start(){
+
+const deviceId=localStorage.getItem("deviceId")||Date.now();
+localStorage.setItem("deviceId",deviceId);
+
+// MEMBER REGISTER
+db.ref("members/"+deviceId).set(true);
+db.ref("members/"+deviceId).onDisconnect().remove();
+
+document.body.innerHTML=`
 <div class="header">
 <img src="logo.png" class="logo">
 <div>👥 Mitglieder Feedback</div>
@@ -82,37 +157,55 @@ button{padding:10px;border-radius:10px;border:none;margin:5px;background:#00ff99
 </div>
 
 <div id="chat"></div>
+`;
 
-<script>
-const firebaseConfig = {
-apiKey:"AIzaSyCFjUj-XSN0YnvAilerXPkXbw2iR2ixBv8",
-authDomain:"kritik-system.firebaseapp.com",
-databaseURL:"https://kritik-system-default-rtdb.europe-west1.firebasedatabase.app",
-projectId:"kritik-system"
-};
-firebase.initializeApp(firebaseConfig);
-const db=firebase.database();
-
-let filter="all";
-let seen={};
-
-function send(type){
-const text=document.getElementById("text").value;
-if(!text)return alert("Text fehlt");
-
-db.ref("feedback").push({
-type,text,time:new Date().toLocaleTimeString()
+// COUNTS
+db.ref("members").on("value",snap=>{
+db.ref("admins").once("value",a=>{
+const admins=a.val()||{};
+let count=0;
+snap.forEach(c=>{
+if(!admins[c.key])count++;
 });
-document.getElementById("text").value="";
+document.getElementById("members").innerText="👥 Mitglieder: "+count;
+});
+});
+
+db.ref("admins").on("value",snap=>{
+const d=snap.val();
+const c=d?Object.keys(d).length:0;
+document.getElementById("admins").innerText="👔 Vorstand: "+c;
+});
+
+live();
 }
 
+// FILTER
+let filter="all";
 function setFilter(f,el){
 filter=f;
 document.querySelectorAll("#filters button").forEach(b=>b.classList.remove("active"));
 el.classList.add("active");
 }
 
+// SEND
+function send(type){
+const text=document.getElementById("text").value;
+if(!text)return alert("Text fehlt");
+
+db.ref("feedback").push({
+type,
+text,
+time:new Date().toLocaleTimeString()
+});
+
+document.getElementById("text").value="";
+}
+
 // LIVE
+let seen={};
+
+function live(){
 db.ref("feedback").on("value",snap=>{
 const data=snap.val()||{};
 let stats={Kritik:0,Lob:0,Frage:0,Vorschlag:0};
@@ -121,9 +214,10 @@ const chat=document.getElementById("chat");
 chat.innerHTML="";
 
 Object.entries(data).reverse().forEach(([id,r])=>{
+
 if(stats[r.type]!=undefined)stats[r.type]++;
 
-if(r.type==="Kritik")return; // Mitglieder sehen keine Kritik
+if(r.type==="Kritik")return; // ausblenden
 if(filter!=="all" && r.type!==filter)return;
 
 const div=document.createElement("div");
@@ -135,37 +229,24 @@ setTimeout(()=>div.classList.remove("new"),15000);
 seen[id]=true;
 }
 
-div.innerHTML=`<b>${r.type}</b><br>${r.text}<br><small>${r.time}</small>`;
+div.innerHTML=`
+<b>${r.type}</b><br>
+${r.text}<br>
+<small>${r.time}</small>
+`;
+
 chat.appendChild(div);
 });
 
-// Stats
+// stats update
 document.querySelector(".stat.Kritik").innerText="Kritik: "+stats.Kritik;
 document.querySelector(".stat.Lob").innerText="Lob: "+stats.Lob;
 document.querySelector(".stat.Frage").innerText="Frage: "+stats.Frage;
 document.querySelector(".stat.Vorschlag").innerText="Vorschlag: "+stats.Vorschlag;
-});
 
-// COUNTS
-const id=localStorage.getItem("id")||Date.now();
-localStorage.setItem("id",id);
-db.ref("members/"+id).set(true);
-db.ref("members/"+id).onDisconnect().remove();
-
-db.ref("members").on("value",s=>{
-db.ref("admins").once("value",a=>{
-const admins=a.val()||{};
-let count=0;
-s.forEach(c=>{if(!admins[c.key])count++});
-document.getElementById("members").innerText="👥 Mitglieder: "+count;
 });
-});
-
-db.ref("admins").on("value",s=>{
-const d=s.val();
-const c=d?Object.keys(d).length:0;
-document.getElementById("admins").innerText="👔 Vorstand: "+c;
-});
+}
 </script>
+
 </body>
 </html>
