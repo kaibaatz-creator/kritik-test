@@ -4,15 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Vorstand Live Feedback</title>
-
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
 <style>
 body{margin:0;background:#000;color:white;font-family:Arial;text-align:center}
-
 .logo{height:80px;margin-top:20px}
+
+button{padding:12px;border-radius:10px;border:none;margin:5px;font-size:16px}
+.kick{background:#0066ff;color:white}
+.delete{background:red;color:white}
 
 /* STATS */
 #stats{display:flex;justify-content:center;gap:10px;margin:15px;flex-wrap:wrap}
@@ -24,13 +25,8 @@ body{margin:0;background:#000;color:white;font-family:Arial;text-align:center}
 
 /* FILTER */
 #filters{display:flex;gap:10px;padding:10px;flex-wrap:wrap}
-#filters button{flex:1;min-width:100px;background:#1e1e1e;color:white;padding:10px;border-radius:10px}
+#filters button{flex:1;min-width:100px;background:#1e1e1e;color:white}
 #filters .active{background:#00ff99;color:black}
-
-/* BUTTONS */
-button{padding:12px;border-radius:10px;border:none;margin:5px;font-size:16px}
-.kick{background:#0066ff;color:white}
-.delete{background:red;color:white}
 
 /* CHAT */
 .msg{
@@ -47,6 +43,10 @@ border-left:4px solid transparent;
 .msg.Lob{border-left-color:#00ff99}
 .msg.Frage{border-left-color:#00bfff}
 .msg.Vorschlag{border-left-color:#ffaa00}
+
+/* BLINK */
+@keyframes blink{0%{opacity:1}50%{opacity:0.3}100%{opacity:1}}
+.new{animation:blink 1s infinite}
 </style>
 </head>
 
@@ -76,24 +76,25 @@ border-left:4px solid transparent;
 <div id="chat"></div>
 
 <script>
-const firebaseConfig={
+const config={
 apiKey:"AIzaSyCFjUj-XSN0YnvAilerXPkXbw2iR2ixBv8",
 authDomain:"kritik-system.firebaseapp.com",
 databaseURL:"https://kritik-system-default-rtdb.europe-west1.firebasedatabase.app",
 projectId:"kritik-system"
 };
 
-firebase.initializeApp(firebaseConfig);
+firebase.initializeApp(config);
 const db=firebase.database();
 
-// 🔥 ADMIN REGISTRIEREN
+// 🔥 ADMIN REGISTRIEREN (WICHTIG)
 const adminId = localStorage.getItem("adminId") || Date.now().toString();
 localStorage.setItem("adminId", adminId);
 db.ref("admins/"+adminId).set(true);
 db.ref("admins/"+adminId).onDisconnect().remove();
 
 let filter="all";
-let lastData={};
+let dataCache={};
+let seen={};
 
 // FILTER
 function setFilter(f,el){
@@ -105,7 +106,7 @@ render();
 
 // LIVE
 db.ref("feedback").on("value",snap=>{
-lastData=snap.val()||{};
+dataCache=snap.val()||{};
 render();
 });
 
@@ -118,7 +119,7 @@ statsDiv.innerHTML="";
 
 let stats={Kritik:0,Lob:0,Frage:0,Vorschlag:0};
 
-Object.entries(lastData).reverse().forEach(([id,r])=>{
+Object.entries(dataCache).reverse().forEach(([id,r])=>{
 
 if(stats[r.type]!=undefined) stats[r.type]++;
 
@@ -126,6 +127,13 @@ if(filter!=="all" && r.type!==filter) return;
 
 const div=document.createElement("div");
 div.className="msg "+r.type;
+
+// BLINK
+if(!seen[id]){
+div.classList.add("new");
+setTimeout(()=>div.classList.remove("new"),15000);
+seen[id]=true;
+}
 
 div.innerHTML=`
 <b>${r.type}</b><br>
@@ -152,7 +160,7 @@ if(prompt("Passwort?")!=="1") return;
 db.ref("feedback/"+id).remove();
 }
 
-// KICK (JETZT FUNKTIONIERT ES)
+// 🔥 KICK FUNKTIONIERT JETZT WIRKLICH
 function kickMembers(){
 if(prompt("PW?")!=="2") return;
 db.ref("members").remove();
