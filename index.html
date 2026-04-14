@@ -72,16 +72,25 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// 🔐 Login prüfen
+// 🔐 Session (10 Minuten)
 const SESSION_TIME = 10 * 60 * 1000;
 const loginTime = localStorage.getItem("loginTimeAdmin") || 0;
 
 if (loginTime && (Date.now() - loginTime < SESSION_TIME)) {
   start();
+} else {
+  localStorage.removeItem("loginTimeAdmin");
 }
 
-// 🔥 GLOBAL LOGOUT LISTENER
+// 🔥 FIX: Kein Reload beim ersten Laden
+let firstLoad = true;
+
 db.ref("settings/forceLogout").on("value", snap => {
+  if(firstLoad){
+    firstLoad = false;
+    return;
+  }
+
   const logoutTime = snap.val() || 0;
   const loginTime = localStorage.getItem("loginTimeAdmin") || 0;
 
@@ -136,10 +145,7 @@ function kickAdmins(){
 
   if(pw === "2"){
     db.ref("admins").remove();
-
-    // 🔥 WICHTIG → alle verlieren Login
     db.ref("settings/forceLogout").set(Date.now());
-
     alert("Alle wurden ausgeloggt!");
     location.reload();
   } else {
