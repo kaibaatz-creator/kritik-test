@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+<title>Mitglieder Feedback</title>
+
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
@@ -22,32 +24,17 @@ font-size:18px;
 
 button{
 padding:12px;
-border-radius:12px;
+border-radius:10px;
 border:none;
 margin:5px;
 background:#00ff99;
-font-size:18px;
+font-size:16px;
 }
 
 /* FILTER */
-#filters{
-display:flex;
-gap:10px;
-padding:10px;
-flex-wrap:wrap;
-}
-
-#filters button{
-flex:1;
-min-width:100px;
-background:#1e1e1e;
-color:white;
-}
-
-#filters .active{
-background:#00ff99;
-color:black;
-}
+#filters{display:flex;gap:10px;padding:10px;flex-wrap:wrap}
+#filters button{flex:1;min-width:100px;background:#1e1e1e;color:white}
+#filters .active{background:#00ff99;color:black}
 
 /* CHAT */
 .msg{
@@ -57,7 +44,13 @@ padding:16px;
 border-radius:14px;
 text-align:left;
 font-size:18px;
+border-left:4px solid transparent;
 }
+
+.msg.Kritik{border-left-color:#ff4444}
+.msg.Lob{border-left-color:#00ff99}
+.msg.Frage{border-left-color:#00bfff}
+.msg.Vorschlag{border-left-color:#ffaa00}
 </style>
 </head>
 
@@ -66,7 +59,7 @@ font-size:18px;
 <img src="logo.png" class="logo">
 <h2>👥 Mitglieder Feedback</h2>
 
-<textarea id="text"></textarea><br>
+<textarea id="text" placeholder="Dein Feedback"></textarea><br>
 
 <button onclick="send('Kritik')">Kritik</button>
 <button onclick="send('Lob')">Lob</button>
@@ -94,6 +87,12 @@ projectId:"kritik-system"
 firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
 
+// 🔥 MEMBER REGISTRIEREN
+const memberId = localStorage.getItem("memberId") || Date.now().toString();
+localStorage.setItem("memberId", memberId);
+db.ref("members/"+memberId).set(true);
+db.ref("members/"+memberId).onDisconnect().remove();
+
 let filter="all";
 let lastData={};
 
@@ -104,7 +103,6 @@ el.classList.add("active");
 render();
 }
 
-// SEND
 function send(type){
 const text=document.getElementById("text").value;
 if(!text)return;
@@ -116,7 +114,6 @@ type,text,time:new Date().toLocaleTimeString()
 document.getElementById("text").value="";
 }
 
-// LIVE
 db.ref("feedback").on("value",snap=>{
 lastData=snap.val()||{};
 render();
@@ -130,7 +127,7 @@ Object.values(lastData).reverse().forEach(r=>{
 if(filter!=="all" && r.type!==filter) return;
 
 const div=document.createElement("div");
-div.className="msg";
+div.className="msg "+r.type;
 
 div.innerHTML=`
 <b>${r.type}</b><br>
