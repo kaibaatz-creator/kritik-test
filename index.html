@@ -158,6 +158,15 @@ window.startedApp = true;
   adminRef.set(true);
   adminRef.onDisconnect().remove();
 
+// 👇 DAS HIER DAZU
+db.ref("admins/" + deviceId).on("value", snap => {
+  if(!snap.exists()){
+    localStorage.removeItem("loginTimeAdmin");
+    alert("Du wurdest gekickt!");
+    location.reload();
+  }
+});
+
   // 👥 Mitglieder
   const memberRef = db.ref("members/" + deviceId);
   memberRef.set(true);
