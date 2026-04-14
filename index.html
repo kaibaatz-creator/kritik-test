@@ -119,23 +119,16 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// 🔐 Session (10 Minuten)
+// 🔐 Session 10 Minuten
 const SESSION_TIME = 10 * 60 * 1000;
 const loginTime = localStorage.getItem("loginTimeAdmin") || 0;
 
-// 🔥 Reset prüfen
-db.ref("settings/resetTime").once("value").then(snap=>{
-  const resetTime = snap.val() || 0;
-
-  if(loginTime < resetTime){
-    localStorage.removeItem("loginTimeAdmin");
-    location.reload();
-  } else if (loginTime && (Date.now() - loginTime < SESSION_TIME)) {
-    start();
-  } else {
-    localStorage.removeItem("loginTimeAdmin");
-  }
-});
+// 🔁 Nur Login prüfen (kein Auto-Kick hier!)
+if (loginTime && (Date.now() - loginTime < SESSION_TIME)) {
+  start();
+} else {
+  localStorage.removeItem("loginTimeAdmin");
+}
 
 // 🔑 Login Passwort = 1
 function login(){
@@ -147,7 +140,7 @@ function login(){
   }
 }
 
-// 🚀 Dashboard starten
+// 🚀 Start
 function start(){
 
   const deviceId = localStorage.getItem("deviceId") || Date.now().toString();
@@ -162,20 +155,6 @@ function start(){
   const memberRef = db.ref("members/" + deviceId);
   memberRef.set(true);
   memberRef.onDisconnect().remove();
-
-  // 🔄 Auto-Reload wenn gekickt
-  db.ref("admins/" + deviceId).on("value", snap => {
-    if(!snap.exists()){
-      localStorage.removeItem("loginTimeAdmin");
-      location.reload();
-    }
-  });
-
-  db.ref("members/" + deviceId).on("value", snap => {
-    if(!snap.exists()){
-      location.reload();
-    }
-  });
 
   document.body.innerHTML = `
   <div class="header">📊 Vorstand Live Feedback</div>
@@ -243,7 +222,7 @@ function kickAdmins(){
 
   if(pw === "2"){
     db.ref("admins").remove();
-    db.ref("settings/resetTime").set(Date.now());
+    alert("Vorstand wurde gekickt!");
     location.reload();
   } else {
     alert("Falsches Passwort!");
@@ -256,6 +235,7 @@ function kickMembers(){
 
   if(pw === "2"){
     db.ref("members").remove();
+    alert("Mitglieder wurden gekickt!");
     location.reload();
   } else {
     alert("Falsches Passwort!");
