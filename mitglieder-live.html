@@ -13,6 +13,11 @@
 body{margin:0;background:#000;color:white;font-family:Arial;text-align:center}
 .logo{height:140px;margin-top:20px}
 
+/* LOGIN */
+#login{margin-top:100px}
+input{padding:12px;border-radius:10px;border:none}
+
+/* INPUT */
 textarea{
 width:90%;
 height:120px;
@@ -54,12 +59,6 @@ border-left:4px solid transparent;
 .msg.Frage{border-left-color:#00bfff}
 .msg.Vorschlag{border-left-color:#ffaa00}
 
-/* DELETE BUTTON */
-.delete{
-background:red;
-color:white;
-}
-
 /* BLINK */
 @keyframes blink{0%{opacity:1}50%{opacity:0.3}100%{opacity:1}}
 .new{animation:blink 1s infinite}
@@ -68,6 +67,47 @@ color:white;
 
 <body>
 
+<!-- LOGIN -->
+<div id="login">
+<h2>🔐 Mitglieder Login</h2>
+<input id="pw" type="password" placeholder="Passwort"><br>
+<button onclick="login()">Login</button>
+<div id="error"></div>
+</div>
+
+<script>
+const config={
+apiKey:"AIzaSyCFjUj-XSN0YnvAilerXPkXbw2iR2ixBv8",
+authDomain:"kritik-system.firebaseapp.com",
+databaseURL:"https://kritik-system-default-rtdb.europe-west1.firebasedatabase.app",
+projectId:"kritik-system"
+};
+
+firebase.initializeApp(config);
+const db=firebase.database();
+
+let memberId=null;
+
+// 🔐 LOGIN
+function login(){
+if(document.getElementById("pw").value !== "1"){
+document.getElementById("error").innerText="❌ Falsches Passwort";
+return;
+}
+
+memberId = localStorage.getItem("memberId") || Date.now().toString();
+localStorage.setItem("memberId", memberId);
+
+start();
+}
+
+// 🚀 START SYSTEM
+function start(){
+
+db.ref("members/"+memberId).set(true);
+db.ref("members/"+memberId).onDisconnect().remove();
+
+document.body.innerHTML=`
 <img src="logo.png" class="logo">
 <h2>👥 Mitglieder</h2>
 
@@ -91,29 +131,18 @@ color:white;
 </div>
 
 <div id="chat"></div>
+`;
 
-<script>
-const config={
-apiKey:"AIzaSyCFjUj-XSN0YnvAilerXPkXbw2iR2ixBv8",
-authDomain:"kritik-system.firebaseapp.com",
-databaseURL:"https://kritik-system-default-rtdb.europe-west1.firebasedatabase.app",
-projectId:"kritik-system"
-};
+run();
+}
 
-firebase.initializeApp(config);
-const db=firebase.database();
+// 🔥 HAUPTLOGIK
+function run(){
 
-// MEMBER REGISTRIEREN
-const memberId = localStorage.getItem("memberId") || Date.now().toString();
-localStorage.setItem("memberId", memberId);
-
-db.ref("members/"+memberId).set(true);
-db.ref("members/"+memberId).onDisconnect().remove();
-
-// LOGOUT BEI KICK
+// 🔴 LOGOUT BEI KICK (JETZT SICHER)
 db.ref("members").on("value", snap=>{
-const data=snap.val()||{};
-if(!data[memberId]){
+const data = snap.val();
+if(!data || !data[memberId]){
 alert("⚠️ Du wurdest gekickt");
 localStorage.removeItem("memberId");
 location.reload();
@@ -129,30 +158,18 @@ document.getElementById("admins").innerText=s.numChildren();
 });
 
 // SEND
-function send(type){
+window.send=(type)=>{
 const text=document.getElementById("text").value;
 if(!text)return;
 
 db.ref("feedback").push({
-type:text?type:"",
-text,
-time:new Date().toLocaleTimeString()
+type,text,time:new Date().toLocaleTimeString()
 });
 
 document.getElementById("text").value="";
-}
+};
 
-// DELETE MIT PASSWORT
-function del(id){
-const pw = prompt("Passwort?");
-if(pw !== "1"){
-alert("❌ Falsches Passwort");
-return;
-}
-db.ref("feedback/"+id).remove();
-}
-
-// LIVE
+// LIVE + STATS + BLINK
 let seen={};
 
 db.ref("feedback").on("value",snap=>{
@@ -180,19 +197,20 @@ seen[id]=true;
 div.innerHTML=`
 <b>${r.type}</b><br>
 ${r.text}<br>
-<small>${r.time}</small><br>
-<button class="delete" onclick="del('${id}')">Löschen</button>
+<small>${r.time}</small>
 `;
 
 chat.appendChild(div);
 });
 
-// stats update
+// STATS UPDATE
 document.querySelector(".stat.Kritik").innerText="Kritik: "+stats.Kritik;
 document.querySelector(".stat.Lob").innerText="Lob: "+stats.Lob;
 document.querySelector(".stat.Frage").innerText="Frage: "+stats.Frage;
 document.querySelector(".stat.Vorschlag").innerText="Vorschlag: "+stats.Vorschlag;
+
 });
+}
 </script>
 
 </body>
