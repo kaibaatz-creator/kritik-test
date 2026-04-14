@@ -161,18 +161,23 @@ const db = firebase.database();
 const SESSION_TIME = 15 * 60 * 1000;
 const loginTime = localStorage.getItem("loginTimeMembers");
 
-if (loginTime && (Date.now() - loginTime < SESSION_TIME)) {
-  start();
-}
+// 🔥 FORCE LOGOUT (IMMER AKTIV)
+db.ref("settings/forceLogoutMembers").on("value", snap => {
 
-function login(){
-  if(document.getElementById("pw").value==="5"){
-    localStorage.setItem("loginTimeMembers", Date.now());
-    start();
-  } else {
-    document.getElementById("error").innerText="❌ Falsches Passwort";
+  const logoutTime = snap.val() || 0;
+  const loginTime = localStorage.getItem("loginTimeMembers") || 0;
+
+  if (Number(loginTime) < Number(logoutTime)) {
+    localStorage.removeItem("loginTimeMembers");
+
+    const deviceId = localStorage.getItem("deviceId");
+    if(deviceId){
+      db.ref("members/" + deviceId).remove();
+    }
+
+    location.reload();
   }
-}
+});
 
 function start(){
 
