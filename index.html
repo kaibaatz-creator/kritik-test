@@ -120,12 +120,16 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
 // 🔐 Session 10 Minuten
+let started = false;
+
 const SESSION_TIME = 10 * 60 * 1000;
 const loginTime = localStorage.getItem("loginTimeAdmin") || 0;
 
-// 🔁 Nur Login prüfen (kein Auto-Kick hier!)
 if (loginTime && (Date.now() - loginTime < SESSION_TIME)) {
-  start();
+  if(!started){
+    started = true;
+    start();
+  }
 } else {
   localStorage.removeItem("loginTimeAdmin");
 }
@@ -143,6 +147,9 @@ function login(){
 // 🚀 Start
 function start(){
 
+if(window.startedApp) return;
+window.startedApp = true;
+  
   const deviceId = localStorage.getItem("deviceId") || Date.now().toString();
   localStorage.setItem("deviceId", deviceId);
 
