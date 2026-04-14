@@ -150,13 +150,32 @@ function login(){
 // 🚀 Dashboard starten
 function start(){
 
-  // Gerät-ID → kein doppelt zählen
   const deviceId = localStorage.getItem("deviceId") || Date.now().toString();
   localStorage.setItem("deviceId", deviceId);
 
+  // 👔 Vorstand
   const adminRef = db.ref("admins/" + deviceId);
   adminRef.set(true);
   adminRef.onDisconnect().remove();
+
+  // 👥 Mitglieder
+  const memberRef = db.ref("members/" + deviceId);
+  memberRef.set(true);
+  memberRef.onDisconnect().remove();
+
+  // 🔄 Auto-Reload wenn gekickt
+  db.ref("admins/" + deviceId).on("value", snap => {
+    if(!snap.exists()){
+      localStorage.removeItem("loginTimeAdmin");
+      location.reload();
+    }
+  });
+
+  db.ref("members/" + deviceId).on("value", snap => {
+    if(!snap.exists()){
+      location.reload();
+    }
+  });
 
   document.body.innerHTML = `
   <div class="header">📊 Vorstand Live Feedback</div>
@@ -168,8 +187,12 @@ function start(){
   </div>
 
   <div style="text-align:center;">
-    <button onclick="kickAll()" style="background:red;color:white;">
-      Alle rauswerfen
+    <button onclick="kickAdmins()" style="background:red;color:white;margin:5px;">
+      Vorstand kicken
+    </button>
+
+    <button onclick="kickMembers()" style="background:blue;color:white;margin:5px;">
+      Mitglieder kicken
     </button>
   </div>
 
@@ -214,14 +237,26 @@ function start(){
   setInterval(load,3000);
 }
 
-// 🔒 Kick Passwort = 2
-function kickAll(){
+// 🔴 Vorstand kicken (Passwort 2)
+function kickAdmins(){
   const pw = prompt("Admin Passwort eingeben:");
 
   if(pw === "2"){
     db.ref("admins").remove();
     db.ref("settings/resetTime").set(Date.now());
-    alert("Alle wurden rausgeworfen!");
+    location.reload();
+  } else {
+    alert("Falsches Passwort!");
+  }
+}
+
+// 🔵 Mitglieder kicken (Passwort 2)
+function kickMembers(){
+  const pw = prompt("Admin Passwort eingeben:");
+
+  if(pw === "2"){
+    db.ref("members").remove();
+    location.reload();
   } else {
     alert("Falsches Passwort!");
   }
