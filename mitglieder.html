@@ -11,6 +11,10 @@
 <style>
 body {
   margin: 0;
+  height: 100vh;              /* 👈 WICHTIG */
+  display: flex;              /* 👈 WICHTIG */
+  justify-content: center;    /* 👈 horizontal */
+  align-items: center;        /* 👈 vertikal */
   background: linear-gradient(180deg, #0f0f0f, #1a1a1a);
   font-family: Arial;
   color: white;
@@ -22,6 +26,11 @@ body {
   justify-content:center;
   align-items:center;
   flex-direction:column;
+
+  background:#1e1e1e;
+  padding:30px;
+  border-radius:15px;
+  box-shadow:0 0 20px rgba(0,0,0,0.5);
 }
 
 input,button{
