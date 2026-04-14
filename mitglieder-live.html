@@ -1,1 +1,93 @@
+<body>
 
+<div class="header">
+<img src="logo.png" class="logo">
+<div>👥 Mitglieder Feedback</div>
+</div>
+
+<div id="counts">
+<div id="members">👥 Mitglieder: 0</div>
+<div id="admins">👔 Vorstand: 0</div>
+</div>
+
+<textarea id="text"></textarea>
+
+<div class="buttons">
+<button onclick="send('Kritik')">Kritik</button>
+<button onclick="send('Lob')">Lob</button>
+<button onclick="send('Frage')">Frage</button>
+<button onclick="send('Vorschlag')">Vorschlag</button>
+</div>
+
+<div id="chat"></div>
+
+<style>
+body{margin:0;background:#000;color:white;font-family:Arial}
+
+/* MOBILE FIX */
+.logo{height:70px;margin:auto;display:block}
+
+textarea{
+width:90%;
+margin:10px auto;
+display:block;
+height:100px;
+font-size:16px;
+}
+
+.buttons{
+display:flex;
+flex-wrap:wrap;
+justify-content:center;
+gap:10px;
+}
+
+button{
+padding:12px;
+font-size:16px;
+border-radius:10px;
+border:none;
+background:#00ff99;
+}
+
+/* CHAT */
+.msg{
+margin:10px;
+padding:15px;
+border-radius:12px;
+background:#1e1e1e;
+font-size:16px;
+}
+
+#chat{width:100%}
+</style>
+
+<script>
+const db = firebase.database();
+
+// 🔥 MEMBER ID SEPARAT
+const memberId = localStorage.getItem("memberId") || "member_" + Date.now();
+localStorage.setItem("memberId", memberId);
+
+// REGISTER
+db.ref("members/"+memberId).set(true);
+db.ref("members/"+memberId).onDisconnect().remove();
+
+// COUNTS FIX
+db.ref("members").on("value",snap=>{
+db.ref("admins").once("value",a=>{
+const admins=a.val()||{};
+let count=0;
+snap.forEach(c=>{
+if(!admins[c.key]) count++;
+});
+document.getElementById("members").innerText="👥 Mitglieder: "+count;
+});
+});
+
+db.ref("admins").on("value",snap=>{
+document.getElementById("admins").innerText="👔 Vorstand: "+snap.numChildren();
+});
+</script>
+
+</body>
