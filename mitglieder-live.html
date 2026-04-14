@@ -4,43 +4,60 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Mitglieder Feedback</title>
-
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
 <style>
 body{margin:0;background:#000;color:white;font-family:Arial;text-align:center}
-.logo{height:80px;margin:20px auto}
+
+.logo{height:80px;margin-top:20px}
 
 textarea{
 width:90%;
-max-width:500px;
-height:100px;
-border-radius:10px;
+height:120px;
+border-radius:12px;
 padding:10px;
+font-size:18px;
 }
 
 button{
-padding:10px;
-border-radius:10px;
+padding:12px;
+border-radius:12px;
 border:none;
 margin:5px;
 background:#00ff99;
+font-size:18px;
 }
 
+/* FILTER */
+#filters{
+display:flex;
+gap:10px;
+padding:10px;
+flex-wrap:wrap;
+}
+
+#filters button{
+flex:1;
+min-width:100px;
+background:#1e1e1e;
+color:white;
+}
+
+#filters .active{
+background:#00ff99;
+color:black;
+}
+
+/* CHAT */
 .msg{
 background:#1e1e1e;
-margin:10px auto;
-padding:15px;
-border-radius:12px;
-max-width:700px;
+margin:12px;
+padding:16px;
+border-radius:14px;
 text-align:left;
+font-size:18px;
 }
-
-#filters{display:flex;gap:10px;padding:10px;max-width:700px;margin:auto}
-#filters button{flex:1;background:#1e1e1e;color:white}
-#filters button.active{background:#00ff99;color:black}
 </style>
 </head>
 
@@ -49,7 +66,7 @@ text-align:left;
 <img src="logo.png" class="logo">
 <h2>👥 Mitglieder Feedback</h2>
 
-<textarea id="text" placeholder="Dein Feedback"></textarea><br>
+<textarea id="text"></textarea><br>
 
 <button onclick="send('Kritik')">Kritik</button>
 <button onclick="send('Lob')">Lob</button>
@@ -78,12 +95,13 @@ firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
 
 let filter="all";
+let lastData={};
 
 function setFilter(f,el){
 filter=f;
 document.querySelectorAll("#filters button").forEach(b=>b.classList.remove("active"));
 el.classList.add("active");
-load();
+render();
 }
 
 // SEND
@@ -99,14 +117,16 @@ document.getElementById("text").value="";
 }
 
 // LIVE
-db.ref("feedback").on("value",load);
+db.ref("feedback").on("value",snap=>{
+lastData=snap.val()||{};
+render();
+});
 
-function load(snap){
-const data=snap?.val() || {};
+function render(){
 const chat=document.getElementById("chat");
 chat.innerHTML="";
 
-Object.values(data).reverse().forEach(r=>{
+Object.values(lastData).reverse().forEach(r=>{
 if(filter!=="all" && r.type!==filter) return;
 
 const div=document.createElement("div");
