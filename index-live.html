@@ -191,30 +191,4 @@ document.getElementById("admins").innerText=snap.numChildren();
 </script>
 
 </body>
-</html>function kickMembers(){
-const pw = prompt("Passwort?");
-if(pw !== "2"){
-alert("❌ Falsches Passwort");
-return;
-}
-
-db.ref("members").remove().then(()=>{
-alert("✅ Mitglieder gekickt");
-}).catch(()=>{
-alert("❌ Fehler beim Kicken");
-});
-}
-
-function kickAdmins(){
-const pw = prompt("Passwort?");
-if(pw !== "2"){
-alert("❌ Falsches Passwort");
-return;
-}
-
-db.ref("admins").remove().then(()=>{
-alert("✅ Vorstand gekickt");
-}).catch(()=>{
-alert("❌ Fehler beim Kicken");
-});
-}
+</html>
