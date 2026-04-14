@@ -119,7 +119,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// Session
+// 🔐 Session
 const SESSION_TIME = 10 * 60 * 1000;
 const loginTime = localStorage.getItem("loginTimeAdmin") || 0;
 
@@ -129,7 +129,7 @@ if (loginTime && (Date.now() - loginTime < SESSION_TIME)) {
   localStorage.removeItem("loginTimeAdmin");
 }
 
-// 🔥 Logout FIX (kein Loop)
+// 🔥 Logout Fix (Vorstand)
 let firstLoad = true;
 
 db.ref("settings/forceLogout").on("value", snap => {
@@ -143,6 +143,23 @@ db.ref("settings/forceLogout").on("value", snap => {
 
   if(loginTime < logoutTime){
     localStorage.removeItem("loginTimeAdmin");
+    location.reload();
+  }
+});
+
+// 🔥 Logout Fix (Mitglieder)
+let firstLoadMembers = true;
+
+db.ref("settings/forceLogoutMembers").on("value", snap => {
+  if(firstLoadMembers){
+    firstLoadMembers = false;
+    return;
+  }
+
+  const logoutTime = snap.val() || 0;
+  const loginTime = localStorage.getItem("loginTimeAdmin") || 0;
+
+  if(loginTime < logoutTime){
     location.reload();
   }
 });
@@ -163,20 +180,31 @@ function start(){
   const deviceId = localStorage.getItem("deviceId") || Date.now().toString();
   localStorage.setItem("deviceId", deviceId);
 
+  // Vorstand
   const adminRef = db.ref("admins/" + deviceId);
   adminRef.set(true);
   adminRef.onDisconnect().remove();
+
+  // Mitglieder
+  const memberRef = db.ref("members/" + deviceId);
+  memberRef.set(true);
+  memberRef.onDisconnect().remove();
 
   document.body.innerHTML = `
   <div class="header">📊 Vorstand Live Feedback</div>
 
   <div id="counts">
+    <div id="members">👥 Mitglieder: 0</div>
     <div id="admins">👔 Vorstand: 0</div>
   </div>
 
   <div style="text-align:center;">
-    <button onclick="kickAdmins()" style="background:red;color:white;">
+    <button onclick="kickAdmins()" style="background:red;color:white;margin:5px;">
       Vorstand kicken
+    </button>
+
+    <button onclick="kickMembers()" style="background:blue;color:white;margin:5px;">
+      Mitglieder kicken
     </button>
   </div>
 
@@ -198,6 +226,12 @@ function start(){
   <div id="chat"></div>
   `;
 
+  // Mitglieder zählen
+  db.ref("members").on("value",snap=>{
+    document.getElementById("members").innerText="👥 Mitglieder: "+snap.numChildren();
+  });
+
+  // Vorstand zählen
   db.ref("admins").on("value",snap=>{
     document.getElementById("admins").innerText="👔 Vorstand: "+snap.numChildren();
   });
@@ -206,7 +240,7 @@ function start(){
   setInterval(load,3000);
 }
 
-// KICK
+// 🔴 Vorstand kicken
 function kickAdmins(){
   const pw = prompt("Admin Passwort eingeben:");
 
@@ -214,6 +248,21 @@ function kickAdmins(){
     db.ref("admins").remove();
     db.ref("settings/forceLogout").set(Date.now());
     location.reload();
+  } else {
+    alert("Falsches Passwort!");
+  }
+}
+
+// 🔵 Mitglieder kicken
+function kickMembers(){
+  const pw = prompt("Admin Passwort eingeben:");
+
+  if(pw === "2"){
+    db.ref("members").remove();
+    db.ref("settings/forceLogoutMembers").set(Date.now());
+    location.reload();
+  } else {
+    alert("Falsches Passwort!");
   }
 }
 
