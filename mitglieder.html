@@ -210,13 +210,22 @@ function start(){
   <div id="chat"></div>
   `;
 
-  db.ref("members").on("value", snap=>{
-    document.getElementById("members").innerText="👥 Mitglieder: "+snap.numChildren();
-  });
+db.ref("members").on("value", snap => {
+  db.ref("admins").once("value", adminSnap => {
 
-  db.ref("admins").on("value", snap=>{
-    document.getElementById("admins").innerText="👔 Vorstand: "+snap.numChildren();
+    const admins = adminSnap.val() || {};
+    let count = 0;
+
+    snap.forEach(child => {
+      if (!admins[child.key]) {
+        count++;
+      }
+    });
+
+    document.getElementById("members").innerText =
+      "👥 Mitglieder: " + count;
   });
+});
 
   load();
   setInterval(load,3000);
