@@ -119,7 +119,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// 🔐 10 Minuten Login merken
+// 🔐 Session (10 Minuten)
 const SESSION_TIME = 10 * 60 * 1000;
 const loginTime = localStorage.getItem("loginTimeAdmin") || 0;
 
@@ -137,15 +137,24 @@ db.ref("settings/resetTime").once("value").then(snap=>{
   }
 });
 
-// 🚀 Start (Dashboard)
+// 🔑 Login Passwort = 1
+function login(){
+  if(document.getElementById("pw").value==="1"){
+    localStorage.setItem("loginTimeAdmin", Date.now());
+    start();
+  } else {
+    document.getElementById("error").innerText="❌ Falsches Passwort";
+  }
+}
+
+// 🚀 Dashboard starten
 function start(){
 
-  // 👉 Geräte-ID (kein doppelt zählen)
+  // Gerät-ID → kein doppelt zählen
   const deviceId = localStorage.getItem("deviceId") || Date.now().toString();
   localStorage.setItem("deviceId", deviceId);
 
   const adminRef = db.ref("admins/" + deviceId);
-
   adminRef.set(true);
   adminRef.onDisconnect().remove();
 
@@ -160,7 +169,7 @@ function start(){
 
   <div style="text-align:center;">
     <button onclick="kickAll()" style="background:red;color:white;">
-      Alle kicken
+      Alle rauswerfen
     </button>
   </div>
 
@@ -205,17 +214,14 @@ function start(){
   setInterval(load,3000);
 }
 
-// 🔥 Kick Funktion (Passwort geschützt)
+// 🔒 Kick Passwort = 2
 function kickAll(){
   const pw = prompt("Admin Passwort eingeben:");
 
-  if(pw === "Vorstand2026!"){
+  if(pw === "2"){
     db.ref("admins").remove();
-
-    // 🔥 NEU: Reset-Zeit setzen
     db.ref("settings/resetTime").set(Date.now());
-
-    alert("Alle wurden gekickt!");
+    alert("Alle wurden rausgeworfen!");
   } else {
     alert("Falsches Passwort!");
   }
