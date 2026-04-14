@@ -3,35 +3,82 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vorstand Live Feedback</title>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
 <style>
-body{margin:0;background:#000;color:white;font-family:Arial;text-align:center}
-.logo{height:80px;margin:20px auto}
-
-#stats{display:flex;justify-content:center;gap:10px;margin:10px}
-.stat{background:#1e1e1e;padding:6px 10px;border-radius:10px}
-
-#filters{display:flex;gap:10px;padding:10px;max-width:700px;margin:auto}
-#filters button{flex:1;background:#1e1e1e;color:white;padding:10px;border-radius:10px}
-#filters button.active{background:#00ff99;color:black}
-
-.msg{
-background:#1e1e1e;
-margin:10px auto;
-padding:15px;
-border-radius:12px;
-max-width:700px;
-text-align:left;
+body{
+margin:0;
+background:#000;
+color:white;
+font-family:Arial;
+text-align:center;
 }
 
-button{padding:10px;border-radius:10px;border:none;margin:5px}
+.logo{height:80px;margin-top:20px}
 
-.delete{background:red;color:white}
+/* MOBILE FIX */
+textarea, button{
+font-size:18px;
+}
+
+button{
+padding:12px;
+border-radius:12px;
+border:none;
+margin:5px;
+}
+
 .kick{background:#0066ff;color:white}
+.delete{background:red;color:white}
+
+/* STATS */
+#stats{
+display:flex;
+justify-content:center;
+gap:10px;
+flex-wrap:wrap;
+margin:15px;
+}
+
+.stat{
+background:#1e1e1e;
+padding:8px 14px;
+border-radius:12px;
+}
+
+/* FILTER */
+#filters{
+display:flex;
+gap:10px;
+padding:10px;
+max-width:700px;
+margin:auto;
+flex-wrap:wrap;
+}
+
+#filters button{
+flex:1;
+min-width:100px;
+background:#1e1e1e;
+color:white;
+}
+
+#filters .active{
+background:#00ff99;
+color:black;
+}
+
+/* CHAT */
+.msg{
+background:#1e1e1e;
+margin:12px;
+padding:16px;
+border-radius:14px;
+text-align:left;
+font-size:18px;
+}
 </style>
 </head>
 
@@ -40,7 +87,7 @@ button{padding:10px;border-radius:10px;border:none;margin:5px}
 <img src="logo.png" class="logo">
 <h2>📊 Vorstand Live Feedback</h2>
 
-<div id="counts">
+<div>
 👥 Mitglieder: <span id="members">0</span><br>
 👔 Vorstand: <span id="admins">0</span> / 5
 </div>
@@ -72,19 +119,23 @@ firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
 
 let filter="all";
+let lastData={};
 
+// 🔥 FIX: Filter ohne Reload
 function setFilter(f,el){
 filter=f;
 document.querySelectorAll("#filters button").forEach(b=>b.classList.remove("active"));
 el.classList.add("active");
-load();
+render();
 }
 
-// 🔥 LIVE FEEDBACK
-db.ref("feedback").on("value",load);
+// 🔥 LIVE DATA
+db.ref("feedback").on("value",snap=>{
+lastData=snap.val()||{};
+render();
+});
 
-function load(snap){
-const data=snap?.val() || {};
+function render(){
 const chat=document.getElementById("chat");
 const statsDiv=document.getElementById("stats");
 
@@ -93,7 +144,7 @@ statsDiv.innerHTML="";
 
 let stats={Kritik:0,Lob:0,Frage:0,Vorschlag:0};
 
-Object.entries(data).reverse().forEach(([id,r])=>{
+Object.entries(lastData).reverse().forEach(([id,r])=>{
 
 if(stats[r.type]!=undefined) stats[r.type]++;
 
@@ -112,7 +163,7 @@ ${r.text}<br>
 chat.appendChild(div);
 });
 
-// stats anzeigen
+// stats
 for(let k in stats){
 const s=document.createElement("div");
 s.className="stat";
@@ -127,15 +178,15 @@ if(prompt("Passwort?")!=="1") return;
 db.ref("feedback/"+id).remove();
 }
 
-// KICK
+// 🔥 FIX: KICK FUNKTIONIERT JETZT
 function kickMembers(){
 if(prompt("PW?")!=="2") return;
-db.ref("members").remove();
+db.ref("members").set(null);
 }
 
 function kickAdmins(){
 if(prompt("PW?")!=="2") return;
-db.ref("admins").remove();
+db.ref("admins").set(null);
 }
 
 // COUNTS
