@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Feedback Liste</title>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+<style>
+body{background:#000;color:white;font-family:Arial;padding:20px}
+
+/* LEGENDE */
+.legend{margin-bottom:20px}
+.legend span{
+  padding:6px 10px;
+  border-radius:8px;
+  margin-right:5px;
+  display:inline-block;
+}
+.Kritik{background:#ff4444}
+.Lob{background:#00ff99;color:black}
+.Frage{background:#00bfff}
+.Vorschlag{background:#ffaa00}
+
+/* TABLE */
+table{width:100%;border-collapse:collapse}
+th,td{padding:10px;border-bottom:1px solid #333;text-align:left}
+th{background:#111}
+
+/* STATS */
+.stats{margin:15px 0}
+</style>
+</head>
+
+<body>
+
+<h2>📋 Feedback Übersicht</h2>
+
+<div class="legend">
+  <span class="Kritik">Kritik</span>
+  <span class="Lob">Lob</span>
+  <span class="Frage">Frage</span>
+  <span class="Vorschlag">Vorschlag</span>
+</div>
+
+<div class="stats">
+  👥 Aktuell online: <span id="current">0</span><br>
+  🚀 Max gleichzeitig: <span id="max">0</span>
+</div>
+
+<table>
+<thead>
+<tr>
+<th>Art</th>
+<th>Text</th>
+<th>Zeit</th>
+</tr>
+</thead>
+<tbody id="table"></tbody>
+</table>
+
+<script>
+const firebaseConfig={
+apiKey:"AIzaSyCFjUj-XSN0YnvAilerXPkXbw2iR2ixBv8",
+authDomain:"kritik-system.firebaseapp.com",
+databaseURL:"https://kritik-system-default-rtdb.europe-west1.firebasedatabase.app",
+projectId:"kritik-system"
+};
+firebase.initializeApp(firebaseConfig);
+const db=firebase.database();
+
+// 🔥 FEEDBACK LISTE
+db.ref("feedback").on("value",snap=>{
+  const data=snap.val()||{};
+  const table=document.getElementById("table");
+  table.innerHTML="";
+
+  Object.values(data).reverse().forEach(r=>{
+    const row=document.createElement("tr");
+
+    row.innerHTML=`
+      <td class="${r.type}">${r.type}</td>
+      <td>${r.text}</td>
+      <td>${r.time}</td>
+    `;
+
+    table.appendChild(row);
+  });
+});
+
+// 🔥 ONLINE COUNT + MAX TRACKING
+db.ref("members").on("value",snap=>{
+  const count=snap.numChildren();
+  document.getElementById("current").innerText=count;
+
+  db.ref("stats/maxMembers").once("value",s=>{
+    const max=s.val()||0;
+
+    if(count>max){
+      db.ref("stats/maxMembers").set(count);
+      document.getElementById("max").innerText=count;
+    }else{
+      document.getElementById("max").innerText=max;
+    }
+  });
+});
+</script>
+
+</body>
+</html>
