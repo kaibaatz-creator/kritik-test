@@ -49,6 +49,53 @@ button{
   text-align:center;
   margin:10px;
 }
+
+#stats{
+  display:flex;
+  justify-content:space-around;
+  padding:10px;
+}
+
+.stat{
+  background:#1e1e1e;
+  padding:6px 10px;
+  border-radius:10px;
+}
+
+#filters{
+  display:flex;
+  gap:6px;
+  padding:10px;
+}
+
+#filters button{
+  flex:1;
+  background:#222;
+  color:white;
+}
+
+#filters button.active{
+  background:#00ff99;
+  color:black;
+}
+
+#chat{
+  max-width:700px;
+  margin:auto;
+  padding:10px;
+}
+
+.msg{
+  background:#1e1e1e;
+  margin:10px 0;
+  padding:14px;
+  border-radius:14px;
+}
+
+.msg.Frage{border-left:4px solid #00bfff;}
+.msg.Kritik{border-left:4px solid #ff4444;}
+.msg.Lob{border-left:4px solid #00ff99;}
+.msg.Vorschlag{border-left:4px solid #ffaa00;}
 </style>
 </head>
 
@@ -72,7 +119,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// 🔐 Session (10 Minuten)
+// Session
 const SESSION_TIME = 10 * 60 * 1000;
 const loginTime = localStorage.getItem("loginTimeAdmin") || 0;
 
@@ -82,7 +129,7 @@ if (loginTime && (Date.now() - loginTime < SESSION_TIME)) {
   localStorage.removeItem("loginTimeAdmin");
 }
 
-// 🔥 FIX: Kein Reload beim ersten Laden
+// 🔥 Logout FIX (kein Loop)
 let firstLoad = true;
 
 db.ref("settings/forceLogout").on("value", snap => {
@@ -100,7 +147,7 @@ db.ref("settings/forceLogout").on("value", snap => {
   }
 });
 
-// 🔑 Login Passwort = 1
+// Login
 function login(){
   if(document.getElementById("pw").value==="1"){
     localStorage.setItem("loginTimeAdmin", Date.now());
@@ -110,7 +157,7 @@ function login(){
   }
 }
 
-// 🚀 Start
+// START
 function start(){
 
   const deviceId = localStorage.getItem("deviceId") || Date.now().toString();
@@ -132,25 +179,98 @@ function start(){
       Vorstand kicken
     </button>
   </div>
+
+  <div id="stats">
+    <div class="stat Kritik">Kritik: 0</div>
+    <div class="stat Lob">Lob: 0</div>
+    <div class="stat Frage">Frage: 0</div>
+    <div class="stat Vorschlag">Vorschlag: 0</div>
+  </div>
+
+  <div id="filters">
+    <button class="active" onclick="setFilter('all', this)">Alle</button>
+    <button onclick="setFilter('Frage', this)">Frage</button>
+    <button onclick="setFilter('Kritik', this)">Kritik</button>
+    <button onclick="setFilter('Lob', this)">Lob</button>
+    <button onclick="setFilter('Vorschlag', this)">Vorschlag</button>
+  </div>
+
+  <div id="chat"></div>
   `;
 
   db.ref("admins").on("value",snap=>{
     document.getElementById("admins").innerText="👔 Vorstand: "+snap.numChildren();
   });
+
+  load();
+  setInterval(load,3000);
 }
 
-// 🔴 KICK (echter Logout)
+// KICK
 function kickAdmins(){
   const pw = prompt("Admin Passwort eingeben:");
 
   if(pw === "2"){
     db.ref("admins").remove();
     db.ref("settings/forceLogout").set(Date.now());
-    alert("Alle wurden ausgeloggt!");
     location.reload();
-  } else {
-    alert("Falsches Passwort!");
   }
+}
+
+// Filter
+let currentFilter="all";
+
+function setFilter(filter,el){
+  currentFilter=filter;
+  document.querySelectorAll("#filters button").forEach(b=>b.classList.remove("active"));
+  el.classList.add("active");
+  load();
+}
+
+// Feedback laden
+const url="https://opensheet.elk.sh/1d2Xf-u1DOMsqlXmwMi05VDD9O6sR4OsmBnQnVqjqGzg/Sheet1";
+
+async function load(){
+  const res=await fetch(url);
+  const data=await res.json();
+
+  let stats={Kritik:0,Lob:0,Frage:0,Vorschlag:0};
+
+  let all=data.map(r=>{
+    let type="",time="";
+    for(let k in r){
+      if(k.toLowerCase().includes("art")) type=r[k];
+      if(k.toLowerCase().includes("zeit")) time=r[k];
+    }
+    if(stats[type]!=undefined) stats[type]++;
+    return {...r,type,time};
+  });
+
+  let display = all;
+  if(currentFilter!=="all"){
+    display = all.filter(r=>r.type===currentFilter);
+  }
+
+  document.querySelector(".stat.Kritik").innerText="Kritik: "+stats.Kritik;
+  document.querySelector(".stat.Lob").innerText="Lob: "+stats.Lob;
+  document.querySelector(".stat.Frage").innerText="Frage: "+stats.Frage;
+  document.querySelector(".stat.Vorschlag").innerText="Vorschlag: "+stats.Vorschlag;
+
+  const chat=document.getElementById("chat");
+  chat.innerHTML="";
+
+  display.slice(-30).reverse().forEach(r=>{
+    const div=document.createElement("div");
+    div.className="msg "+r.type;
+
+    div.innerHTML=`
+      <b>${r.type}</b><br>
+      ${r["Dein Feedback"]}<br>
+      <span style="font-size:12px;color:#888">${r.time||"-"}</span>
+    `;
+
+    chat.appendChild(div);
+  });
 }
 </script>
 
