@@ -167,8 +167,13 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-const SESSION_TIME = 15 * 60 * 1000;
+const SESSION_TIME = 30 * 60 * 1000; // 30 Minuten
 const loginTime = localStorage.getItem("loginTimeMembers");
+
+// 🔥 AUTO LOGIN
+if (loginTime && (Date.now() - loginTime < SESSION_TIME)) {
+  start();
+}
 
 // 🔥 Logout Listener (mit Schutz gegen Loop)
 let firstLoadMembers = true;
