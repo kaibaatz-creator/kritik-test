@@ -7,15 +7,29 @@
 
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-  
+
 <style>
 body {
   margin: 0;
-  background: linear-gradient(180deg, #0f0f0f, #1a1a1a);
+  background: #000;
   font-family: Arial;
   color: white;
 }
 
+/* HEADER */
+.header {
+  text-align: center;
+  padding: 15px;
+  border-bottom: 1px solid #333;
+}
+
+.logo {
+  height: 100px;
+  display: block;
+  margin: 0 auto 10px auto;
+}
+
+/* LOGIN */
 #login {
   display:flex;
   height:100vh;
@@ -34,16 +48,10 @@ input,button{
 button{
   background:#00ff99;
   font-weight:bold;
+  cursor:pointer;
 }
 
 #error{color:red;}
-
-.header{
-  text-align:center;
-  padding:15px;
-  font-size:20px;
-  border-bottom:1px solid #333;
-}
 
 #counts{
   text-align:center;
@@ -64,12 +72,13 @@ button{
 
 #filters{
   display:flex;
-  gap:6px;
+  justify-content:center;
+  gap:10px;
   padding:10px;
+  flex-wrap:wrap;
 }
 
 #filters button{
-  flex:1;
   background:#222;
   color:white;
 }
@@ -119,50 +128,13 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// 🔐 Session
-const SESSION_TIME = 10 * 60 * 1000;
-const loginTime = localStorage.getItem("loginTimeAdmin") || 0;
+const SESSION_TIME = 30 * 60 * 1000;
+const loginTime = localStorage.getItem("loginTimeAdmin");
 
+// Auto Login
 if (loginTime && (Date.now() - loginTime < SESSION_TIME)) {
   start();
-} else {
-  localStorage.removeItem("loginTimeAdmin");
 }
-
-// 🔥 Logout Fix (Vorstand)
-let firstLoad = true;
-
-db.ref("settings/forceLogout").on("value", snap => {
-  if(firstLoad){
-    firstLoad = false;
-    return;
-  }
-
-  const logoutTime = snap.val() || 0;
-  const loginTime = localStorage.getItem("loginTimeAdmin") || 0;
-
-  if(loginTime < logoutTime){
-    localStorage.removeItem("loginTimeAdmin");
-    location.reload();
-  }
-});
-
-// 🔥 Logout Fix (Mitglieder)
-let firstLoadMembers = true;
-
-db.ref("settings/forceLogoutMembers").on("value", snap => {
-  if(firstLoadMembers){
-    firstLoadMembers = false;
-    return;
-  }
-
-  const logoutTime = snap.val() || 0;
-  const loginTime = localStorage.getItem("loginTimeAdmin") || 0;
-
-  if(loginTime < logoutTime){
-    location.reload();
-  }
-});
 
 // Login
 function login(){
@@ -180,26 +152,19 @@ function start(){
   const deviceId = localStorage.getItem("deviceId") || Date.now().toString();
   localStorage.setItem("deviceId", deviceId);
 
-  // Vorstand
-// Vorstand
-const adminRef = db.ref("admins/" + deviceId);
-adminRef.set(true);
-adminRef.onDisconnect().remove();
-
-// ❌ Admin darf KEIN Mitglied sein
-db.ref("members/" + deviceId).remove();
-
-  // Mitglieder
-  const memberRef = db.ref("members/" + deviceId);
-  memberRef.set(true);
-  memberRef.onDisconnect().remove();
+  const adminRef = db.ref("admins/" + deviceId);
+  adminRef.set(true);
+  adminRef.onDisconnect().remove();
 
   document.body.innerHTML = `
-  <div class="header">📊 Vorstand Live Feedback</div>
+  <div class="header">
+    <img src="logo.png" class="logo">
+    <div>📊 Vorstand Live Feedback</div>
+  </div>
 
   <div id="counts">
     <div id="members">👥 Mitglieder: 0</div>
-    <div id="admins">👔 Vorstand: 0</div>
+    <div id="admins">👔 Vorstand: 0 / 5</div>
   </div>
 
   <div style="text-align:center;">
@@ -230,64 +195,48 @@ db.ref("members/" + deviceId).remove();
   <div id="chat"></div>
   `;
 
-  // Mitglieder zählen
-db.ref("members").on("value", snap => {
-  db.ref("admins").once("value", adminSnap => {
+  db.ref("members").on("value", snap=>{
+    db.ref("admins").once("value", adminSnap=>{
+      const admins = adminSnap.val() || {};
+      let count = 0;
 
-    const admins = adminSnap.val() || {};
-    let count = 0;
+      snap.forEach(child=>{
+        if(!admins[child.key]) count++;
+      });
 
-    snap.forEach(child => {
-      if (!admins[child.key]) {
-        count++;
-      }
+      document.getElementById("members").innerText="👥 Mitglieder: "+count;
     });
-
-    document.getElementById("members").innerText =
-      "👥 Mitglieder: " + count;
   });
-});
 
-  // Vorstand zählen
-const MAX_ADMINS = 5;
-
-db.ref("admins").on("value",snap=>{
-  const count = snap.numChildren();
-  document.getElementById("admins").innerText =
-    "👔 Vorstand: " + count + " / " + MAX_ADMINS;
-});
+  db.ref("admins").on("value", snap=>{
+    document.getElementById("admins").innerText=
+      "👔 Vorstand: "+snap.numChildren()+" / 5";
+  });
 
   load();
   setInterval(load,3000);
 }
 
-// 🔴 Vorstand kicken
+// KICK
 function kickAdmins(){
   const pw = prompt("Admin Passwort eingeben:");
-
   if(pw === "2"){
     db.ref("admins").remove();
     db.ref("settings/forceLogout").set(Date.now());
     location.reload();
-  } else {
-    alert("Falsches Passwort!");
   }
 }
 
-// 🔵 Mitglieder kicken
 function kickMembers(){
   const pw = prompt("Admin Passwort eingeben:");
-
   if(pw === "2"){
     db.ref("members").remove();
     db.ref("settings/forceLogoutMembers").set(Date.now());
     location.reload();
-  } else {
-    alert("Falsches Passwort!");
   }
 }
 
-// Filter
+// FILTER
 let currentFilter="all";
 
 function setFilter(filter,el){
@@ -297,7 +246,7 @@ function setFilter(filter,el){
   load();
 }
 
-// Feedback laden
+// DATA
 const url="https://opensheet.elk.sh/1d2Xf-u1DOMsqlXmwMi05VDD9O6sR4OsmBnQnVqjqGzg/Sheet1";
 
 async function load(){
