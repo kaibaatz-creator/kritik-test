@@ -140,7 +140,7 @@ button{
 
 <body>
 
-<div id="login">
+<div id="">
   <h2>Mitglieder Login</h2>
   <input id="pw" type="password" placeholder="Passwort">
   <button onclick="login()">Login</button>
@@ -186,6 +186,19 @@ db.ref("settings/forceLogoutMembers").on("value", snap => {
     location.reload();
   }
 });
+  
+// ⬇️ HIER REIN (direkt unter dem Listener)
+
+window.login = function(){
+  const pw = document.getElementById("pw").value;
+
+  if(pw === "5"){
+    localStorage.setItem("loginTimeMembers", Date.now());
+    start();
+  } else {
+    document.getElementById("error").innerText = "❌ Falsches Passwort";
+  }
+}
 
 function start(){
 
