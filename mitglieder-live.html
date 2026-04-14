@@ -1,1 +1,91 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mitglieder Feedback</title>
 
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+<style>
+body { background:#000; color:white; font-family:Arial; text-align:center; margin:0; }
+
+.logo { height:90px; margin:20px auto; display:block; }
+
+textarea {
+  width:90%; max-width:400px; height:100px;
+  border-radius:10px; padding:10px; border:none;
+}
+
+button {
+  margin:5px; padding:10px 15px;
+  border:none; border-radius:10px;
+  background:#00ff99; font-weight:bold; cursor:pointer;
+}
+
+.msg {
+  background:#1e1e1e; margin:10px auto;
+  padding:15px; border-radius:12px;
+  max-width:600px; text-align:left;
+}
+</style>
+</head>
+
+<body>
+
+<img src="logo.png" class="logo">
+<h2>👥 Mitglieder Feedback</h2>
+
+<textarea id="text" placeholder="Dein Feedback"></textarea><br>
+
+<button onclick="send('Lob')">Lob</button>
+<button onclick="send('Frage')">Frage</button>
+<button onclick="send('Vorschlag')">Vorschlag</button>
+
+<h3>Feed</h3>
+<div id="chat"></div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyCFjUj-XSN0YnvAilerXPkXbw2iR2ixBv8",
+  authDomain: "kritik-system.firebaseapp.com",
+  databaseURL: "https://kritik-system-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "kritik-system"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+function send(type){
+  const text = document.getElementById("text").value;
+  if(!text) return alert("Text fehlt");
+
+  db.ref("feedback").push({
+    type, text,
+    time:new Date().toLocaleString()
+  });
+
+  document.getElementById("text").value="";
+}
+
+db.ref("feedback").on("value", snap => {
+  const data = snap.val()||{};
+  const list = Object.values(data);
+
+  const chat = document.getElementById("chat");
+  chat.innerHTML="";
+
+  list.reverse().forEach(r=>{
+    if(r.type==="Kritik") return; // Mitglieder sehen keine Kritik
+
+    const div=document.createElement("div");
+    div.className="msg";
+    div.innerHTML=`<b>${r.type}</b><br>${r.text}<br><small>${r.time}</small>`;
+    chat.appendChild(div);
+  });
+});
+</script>
+
+</body>
+</html>
