@@ -1,1 +1,152 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vorstand Live Feedback</title>
 
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+<style>
+body {
+  margin: 0;
+  background: linear-gradient(180deg, #0f0f0f, #1a1a1a);
+  font-family: Arial;
+  color: white;
+}
+
+#login {
+  display:flex;
+  height:100vh;
+  justify-content:center;
+  align-items:center;
+  flex-direction:column;
+}
+
+input,button{
+  padding:12px;
+  border-radius:10px;
+  border:none;
+  margin:8px;
+}
+
+button{
+  background:#00ff99;
+  font-weight:bold;
+}
+
+#error{color:red;}
+
+.header{
+  text-align:center;
+  padding:15px;
+  font-size:20px;
+  border-bottom:1px solid #333;
+}
+
+#counts{
+  text-align:center;
+  margin:10px;
+}
+</style>
+</head>
+
+<body>
+
+<div id="login">
+  <h2>Vorstand Login</h2>
+  <input id="pw" type="password" placeholder="Passwort">
+  <button onclick="login()">Login</button>
+  <div id="error"></div>
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyCFjuJ-XSN0YnvAilerXPkXbw2iR2ixBv8",
+  authDomain: "kritik-system.firebaseapp.com",
+  databaseURL: "https://kritik-system-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "kritik-system"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// 🔐 Login prüfen
+const SESSION_TIME = 10 * 60 * 1000;
+const loginTime = localStorage.getItem("loginTimeAdmin") || 0;
+
+if (loginTime && (Date.now() - loginTime < SESSION_TIME)) {
+  start();
+}
+
+// 🔥 GLOBAL LOGOUT LISTENER
+db.ref("settings/forceLogout").on("value", snap => {
+  const logoutTime = snap.val() || 0;
+  const loginTime = localStorage.getItem("loginTimeAdmin") || 0;
+
+  if(loginTime < logoutTime){
+    localStorage.removeItem("loginTimeAdmin");
+    location.reload();
+  }
+});
+
+// 🔑 Login Passwort = 1
+function login(){
+  if(document.getElementById("pw").value==="1"){
+    localStorage.setItem("loginTimeAdmin", Date.now());
+    start();
+  } else {
+    document.getElementById("error").innerText="❌ Falsches Passwort";
+  }
+}
+
+// 🚀 Start
+function start(){
+
+  const deviceId = localStorage.getItem("deviceId") || Date.now().toString();
+  localStorage.setItem("deviceId", deviceId);
+
+  const adminRef = db.ref("admins/" + deviceId);
+  adminRef.set(true);
+  adminRef.onDisconnect().remove();
+
+  document.body.innerHTML = `
+  <div class="header">📊 Vorstand Live Feedback</div>
+
+  <div id="counts">
+    <div id="admins">👔 Vorstand: 0</div>
+  </div>
+
+  <div style="text-align:center;">
+    <button onclick="kickAdmins()" style="background:red;color:white;">
+      Vorstand kicken
+    </button>
+  </div>
+  `;
+
+  db.ref("admins").on("value",snap=>{
+    document.getElementById("admins").innerText="👔 Vorstand: "+snap.numChildren();
+  });
+}
+
+// 🔴 KICK (echter Logout)
+function kickAdmins(){
+  const pw = prompt("Admin Passwort eingeben:");
+
+  if(pw === "2"){
+    db.ref("admins").remove();
+
+    // 🔥 WICHTIG → alle verlieren Login
+    db.ref("settings/forceLogout").set(Date.now());
+
+    alert("Alle wurden ausgeloggt!");
+    location.reload();
+  } else {
+    alert("Falsches Passwort!");
+  }
+}
+</script>
+
+</body>
+</html>
