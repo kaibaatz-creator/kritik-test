@@ -1,185 +1,27 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-
-<style>
-body{margin:0;background:#000;color:white;font-family:Arial;text-align:center}
-.logo{height:80px;margin-top:20px}
-
-button{padding:12px;border-radius:10px;border:none;margin:5px;font-size:16px}
-.kick{background:#0066ff;color:white}
-.delete{background:red;color:white}
-
-/* STATS */
-#stats{display:flex;justify-content:center;gap:10px;margin:15px;flex-wrap:wrap}
-.stat{background:#1e1e1e;padding:8px 12px;border-radius:12px}
-.stat.Kritik{color:#ff4444}
-.stat.Lob{color:#00ff99}
-.stat.Frage{color:#00bfff}
-.stat.Vorschlag{color:#ffaa00}
-
-/* FILTER */
-#filters{display:flex;gap:10px;padding:10px;flex-wrap:wrap}
-#filters button{flex:1;min-width:100px;background:#1e1e1e;color:white}
-#filters .active{background:#00ff99;color:black}
-
-/* CHAT */
-.msg{
-background:#1e1e1e;
-margin:12px;
-padding:16px;
-border-radius:14px;
-text-align:left;
-font-size:18px;
-border-left:4px solid transparent;
-}
-
-.msg.Kritik{border-left-color:#ff4444}
-.msg.Lob{border-left-color:#00ff99}
-.msg.Frage{border-left-color:#00bfff}
-.msg.Vorschlag{border-left-color:#ffaa00}
-
-/* BLINK */
-@keyframes blink{0%{opacity:1}50%{opacity:0.3}100%{opacity:1}}
-.new{animation:blink 1s infinite}
-</style>
-</head>
-
-<body>
-
-<img src="logo.png" class="logo">
-<h2>📊 Vorstand Live Feedback</h2>
-
-<div>
-👥 Mitglieder: <span id="members">0</span><br>
-👔 Vorstand: <span id="admins">0</span> / 5
-</div>
-
-<button class="kick" onclick="kickMembers()">Mitglieder kicken</button>
-<button class="kick" onclick="kickAdmins()">Vorstand kicken</button>
-
-<div id="stats"></div>
-
-<div id="filters">
-<button class="active" onclick="setFilter('all',this)">Alle</button>
-<button onclick="setFilter('Kritik',this)">Kritik</button>
-<button onclick="setFilter('Lob',this)">Lob</button>
-<button onclick="setFilter('Frage',this)">Frage</button>
-<button onclick="setFilter('Vorschlag',this)">Vorschlag</button>
-</div>
-
-<div id="chat"></div>
-
-<script>
-const config={
-apiKey:"AIzaSyCFjUj-XSN0YnvAilerXPkXbw2iR2ixBv8",
-authDomain:"kritik-system.firebaseapp.com",
-databaseURL:"https://kritik-system-default-rtdb.europe-west1.firebasedatabase.app",
-projectId:"kritik-system"
-};
-
-firebase.initializeApp(config);
-const db=firebase.database();
-
-// 🔥 ADMIN REGISTRIEREN (WICHTIG)
-const adminId = localStorage.getItem("adminId") || Date.now().toString();
-localStorage.setItem("adminId", adminId);
-db.ref("admins/"+adminId).set(true);
-db.ref("admins/"+adminId).onDisconnect().remove();
-
-let filter="all";
-let dataCache={};
-let seen={};
-
-// FILTER
-function setFilter(f,el){
-filter=f;
-document.querySelectorAll("#filters button").forEach(b=>b.classList.remove("active"));
-el.classList.add("active");
-render();
-}
-
-// LIVE
-db.ref("feedback").on("value",snap=>{
-dataCache=snap.val()||{};
-render();
-});
-
-function render(){
-const chat=document.getElementById("chat");
-const statsDiv=document.getElementById("stats");
-
-chat.innerHTML="";
-statsDiv.innerHTML="";
-
-let stats={Kritik:0,Lob:0,Frage:0,Vorschlag:0};
-
-Object.entries(dataCache).reverse().forEach(([id,r])=>{
-
-if(stats[r.type]!=undefined) stats[r.type]++;
-
-if(filter!=="all" && r.type!==filter) return;
-
-const div=document.createElement("div");
-div.className="msg "+r.type;
-
-// BLINK
-if(!seen[id]){
-div.classList.add("new");
-setTimeout(()=>div.classList.remove("new"),15000);
-seen[id]=true;
-}
-
-div.innerHTML=`
-<b>${r.type}</b><br>
-${r.text}<br>
-<small>${r.time}</small><br>
-<button class="delete" onclick="del('${id}')">Löschen</button>
-`;
-
-chat.appendChild(div);
-});
-
-// stats
-for(let k in stats){
-const s=document.createElement("div");
-s.className="stat "+k;
-s.innerText=k+": "+stats[k];
-statsDiv.appendChild(s);
-}
-}
-
-// DELETE
-function del(id){
-if(prompt("Passwort?")!=="1") return;
-db.ref("feedback/"+id).remove();
-}
-
-// 🔥 KICK FUNKTIONIERT JETZT WIRKLICH
 function kickMembers(){
-if(prompt("PW?")!=="2") return;
-db.ref("members").remove();
+const pw = prompt("Passwort?");
+if(pw !== "2"){
+alert("❌ Falsches Passwort");
+return;
+}
+
+db.ref("members").remove().then(()=>{
+alert("✅ Mitglieder gekickt");
+}).catch(()=>{
+alert("❌ Fehler beim Kicken");
+});
 }
 
 function kickAdmins(){
-if(prompt("PW?")!=="2") return;
-db.ref("admins").remove();
+const pw = prompt("Passwort?");
+if(pw !== "2"){
+alert("❌ Falsches Passwort");
+return;
 }
 
-// COUNTS
-db.ref("members").on("value",snap=>{
-document.getElementById("members").innerText=snap.numChildren();
+db.ref("admins").remove().then(()=>{
+alert("✅ Vorstand gekickt");
+}).catch(()=>{
+alert("❌ Fehler beim Kicken");
 });
-
-db.ref("admins").on("value",snap=>{
-document.getElementById("admins").innerText=snap.numChildren();
-});
-</script>
-
-</body>
-</html>
+}
