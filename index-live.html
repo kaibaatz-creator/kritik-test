@@ -1,1 +1,99 @@
+<!-- NUR BODY + SCRIPT tauschen -->
+<body>
 
+<div class="header">
+<img src="logo.png" class="logo">
+<div>📊 Vorstand Live Feedback</div>
+</div>
+
+<div id="counts">
+<div id="members">👥 Mitglieder: 0</div>
+<div id="admins">👔 Vorstand: 0 / 5</div>
+</div>
+
+<div class="actions">
+<button onclick="kickAdmins()">Vorstand kicken</button>
+<button onclick="kickMembers()">Mitglieder kicken</button>
+</div>
+
+<div id="stats"></div>
+<div id="filters"></div>
+<div id="chat"></div>
+
+<style>
+body{margin:0;background:#000;color:white;font-family:Arial}
+
+/* MOBILE FIX */
+.header{text-align:center;padding:10px}
+.logo{height:70px}
+
+.actions{
+display:flex;
+justify-content:center;
+gap:10px;
+flex-wrap:wrap;
+}
+
+button{
+padding:12px;
+border-radius:10px;
+border:none;
+font-size:16px;
+}
+
+/* MOBILE CHAT */
+.msg{
+margin:10px;
+padding:15px;
+border-radius:12px;
+background:#1e1e1e;
+font-size:16px;
+}
+
+/* FULL WIDTH MOBILE */
+#chat{width:100%}
+</style>
+
+<script>
+const db = firebase.database();
+
+// 🔥 WICHTIG: ADMIN ID SEPARAT
+const adminId = localStorage.getItem("adminId") || "admin_" + Date.now();
+localStorage.setItem("adminId", adminId);
+
+// ADMIN REGISTRIEREN
+db.ref("admins/"+adminId).set(true);
+db.ref("admins/"+adminId).onDisconnect().remove();
+
+// 🔥 MEMBERS ZÄHLEN (OHNE ADMINS)
+db.ref("members").on("value",snap=>{
+db.ref("admins").once("value",a=>{
+const admins=a.val()||{};
+let count=0;
+snap.forEach(c=>{
+if(!admins[c.key]) count++;
+});
+document.getElementById("members").innerText="👥 Mitglieder: "+count;
+});
+});
+
+// ADMINS ZÄHLEN
+db.ref("admins").on("value",snap=>{
+const c = snap.numChildren();
+document.getElementById("admins").innerText="👔 Vorstand: "+c+" / 5";
+});
+
+// 🔥 KICK FIX
+function kickMembers(){
+if(prompt("PW?")!=="2") return;
+db.ref("members").remove();
+}
+
+function kickAdmins(){
+if(prompt("PW?")!=="2") return;
+db.ref("admins").remove();
+location.reload();
+}
+</script>
+
+</body>
