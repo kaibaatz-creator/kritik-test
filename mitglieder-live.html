@@ -4,12 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+<title>Mitglieder Feedback</title>
+
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
 <style>
 body{margin:0;background:#000;color:white;font-family:Arial;text-align:center}
-.logo{height:80px;margin-top:20px}
+
+.logo{height:140px;margin-top:20px}
 
 textarea{
 width:90%;
@@ -27,6 +30,14 @@ margin:5px;
 background:#00ff99;
 font-size:16px;
 }
+
+/* STATS */
+#stats{display:flex;justify-content:center;gap:10px;margin:15px;flex-wrap:wrap}
+.stat{background:#1e1e1e;padding:8px 12px;border-radius:12px}
+.stat.Kritik{color:#ff4444}
+.stat.Lob{color:#00ff99}
+.stat.Frage{color:#00bfff}
+.stat.Vorschlag{color:#ffaa00}
 
 /* FILTER */
 #filters{display:flex;gap:10px;padding:10px;flex-wrap:wrap}
@@ -71,6 +82,13 @@ border-left:4px solid transparent;
 <button onclick="send('Lob')">Lob</button>
 <button onclick="send('Frage')">Frage</button>
 <button onclick="send('Vorschlag')">Vorschlag</button>
+
+<div id="stats">
+<div class="stat Kritik">Kritik: 0</div>
+<div class="stat Lob">Lob: 0</div>
+<div class="stat Frage">Frage: 0</div>
+<div class="stat Vorschlag">Vorschlag: 0</div>
+</div>
 
 <div id="filters">
 <button class="active" onclick="setFilter('all',this)">Alle</button>
@@ -128,9 +146,14 @@ render();
 
 function render(){
 const chat=document.getElementById("chat");
+
+let stats={Kritik:0,Lob:0,Frage:0,Vorschlag:0};
+
 chat.innerHTML="";
 
 Object.entries(dataCache).reverse().forEach(([id,r])=>{
+
+if(stats[r.type]!=undefined) stats[r.type]++;
 
 if(filter!=="all" && r.type!==filter) return;
 
@@ -152,9 +175,14 @@ ${r.text}<br>
 
 chat.appendChild(div);
 });
+
+// stats update
+document.querySelector(".stat.Kritik").innerText="Kritik: "+stats.Kritik;
+document.querySelector(".stat.Lob").innerText="Lob: "+stats.Lob;
+document.querySelector(".stat.Frage").innerText="Frage: "+stats.Frage;
+document.querySelector(".stat.Vorschlag").innerText="Vorschlag: "+stats.Vorschlag;
 }
 
-// COUNTS
 db.ref("members").on("value",snap=>{
 document.getElementById("members").innerText=snap.numChildren();
 });
