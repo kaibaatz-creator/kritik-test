@@ -9,83 +9,163 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
 <style>
-body { background:#000; color:white; font-family:Arial; text-align:center; margin:0; }
+body{margin:0;background:#000;color:white;font-family:Arial}
 
-.logo { height:90px; margin:20px auto; display:block; }
+/* HEADER */
+.header{text-align:center;padding:15px;border-bottom:1px solid #333}
+.logo{height:90px;display:block;margin:0 auto 10px}
 
-textarea {
-  width:90%; max-width:400px; height:100px;
-  border-radius:10px; padding:10px; border:none;
-}
+/* COUNTS */
+#counts{text-align:center;margin:10px}
 
-button {
-  margin:5px; padding:10px 15px;
-  border:none; border-radius:10px;
-  background:#00ff99; font-weight:bold; cursor:pointer;
-}
+/* STATS */
+#stats{display:flex;justify-content:space-around;padding:10px}
+.stat{background:#1e1e1e;padding:6px 10px;border-radius:10px}
+.stat.Kritik{color:#ff4444}
+.stat.Lob{color:#00ff99}
+.stat.Frage{color:#00bfff}
+.stat.Vorschlag{color:#ffaa00}
 
-.msg {
-  background:#1e1e1e; margin:10px auto;
-  padding:15px; border-radius:12px;
-  max-width:600px; text-align:left;
-}
+/* FILTER */
+#filters{display:flex;gap:6px;padding:10px}
+#filters button{flex:1;background:#222;color:white}
+#filters button.active{background:#00ff99;color:black}
+
+/* FORM */
+textarea{width:90%;max-width:400px;height:90px;border-radius:10px;padding:10px;border:none}
+button{padding:10px;border-radius:10px;border:none;margin:5px;background:#00ff99;font-weight:bold}
+
+/* CHAT */
+#chat{max-width:700px;margin:auto;padding:10px}
+.msg{background:#1e1e1e;margin:10px 0;padding:14px;border-radius:14px;border-left:4px solid transparent}
+.msg.Frage{border-left-color:#00bfff}
+.msg.Lob{border-left-color:#00ff99}
+.msg.Vorschlag{border-left-color:#ffaa00}
+
+/* BLINK */
+@keyframes blink {0%{opacity:1}50%{opacity:0.3}100%{opacity:1}}
+.new{animation:blink 1s infinite}
 </style>
 </head>
 
 <body>
 
+<div class="header">
 <img src="logo.png" class="logo">
-<h2>👥 Mitglieder Feedback</h2>
+<div>👥 Mitglieder Feedback</div>
+</div>
 
+<div id="counts">
+<div id="members">👥 Mitglieder: 0</div>
+<div id="admins">👔 Vorstand: 0</div>
+</div>
+
+<div style="text-align:center">
 <textarea id="text" placeholder="Dein Feedback"></textarea><br>
-
 <button onclick="send('Lob')">Lob</button>
 <button onclick="send('Frage')">Frage</button>
 <button onclick="send('Vorschlag')">Vorschlag</button>
+</div>
 
-<h3>Feed</h3>
+<div id="stats">
+<div class="stat Kritik">Kritik: 0</div>
+<div class="stat Lob">Lob: 0</div>
+<div class="stat Frage">Frage: 0</div>
+<div class="stat Vorschlag">Vorschlag: 0</div>
+</div>
+
+<div id="filters">
+<button class="active" onclick="setFilter('all',this)">Alle</button>
+<button onclick="setFilter('Frage',this)">Frage</button>
+<button onclick="setFilter('Lob',this)">Lob</button>
+<button onclick="setFilter('Vorschlag',this)">Vorschlag</button>
+</div>
+
 <div id="chat"></div>
 
 <script>
 const firebaseConfig = {
-  apiKey: "AIzaSyCFjUj-XSN0YnvAilerXPkXbw2iR2ixBv8",
-  authDomain: "kritik-system.firebaseapp.com",
-  databaseURL: "https://kritik-system-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "kritik-system"
+apiKey:"AIzaSyCFjUj-XSN0YnvAilerXPkXbw2iR2ixBv8",
+authDomain:"kritik-system.firebaseapp.com",
+databaseURL:"https://kritik-system-default-rtdb.europe-west1.firebasedatabase.app",
+projectId:"kritik-system"
 };
-
 firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+const db=firebase.database();
+
+let filter="all";
+let seen={};
 
 function send(type){
-  const text = document.getElementById("text").value;
-  if(!text) return alert("Text fehlt");
+const text=document.getElementById("text").value;
+if(!text)return alert("Text fehlt");
 
-  db.ref("feedback").push({
-    type, text,
-    time:new Date().toLocaleString()
-  });
-
-  document.getElementById("text").value="";
+db.ref("feedback").push({
+type,text,time:new Date().toLocaleTimeString()
+});
+document.getElementById("text").value="";
 }
 
-db.ref("feedback").on("value", snap => {
-  const data = snap.val()||{};
-  const list = Object.values(data);
+function setFilter(f,el){
+filter=f;
+document.querySelectorAll("#filters button").forEach(b=>b.classList.remove("active"));
+el.classList.add("active");
+}
 
-  const chat = document.getElementById("chat");
-  chat.innerHTML="";
+// LIVE
+db.ref("feedback").on("value",snap=>{
+const data=snap.val()||{};
+let stats={Kritik:0,Lob:0,Frage:0,Vorschlag:0};
 
-  list.reverse().forEach(r=>{
-    if(r.type==="Kritik") return; // Mitglieder sehen keine Kritik
+const chat=document.getElementById("chat");
+chat.innerHTML="";
 
-    const div=document.createElement("div");
-    div.className="msg";
-    div.innerHTML=`<b>${r.type}</b><br>${r.text}<br><small>${r.time}</small>`;
-    chat.appendChild(div);
-  });
+Object.entries(data).reverse().forEach(([id,r])=>{
+if(stats[r.type]!=undefined)stats[r.type]++;
+
+if(r.type==="Kritik")return; // Mitglieder sehen keine Kritik
+if(filter!=="all" && r.type!==filter)return;
+
+const div=document.createElement("div");
+div.className="msg "+r.type;
+
+if(!seen[id]){
+div.classList.add("new");
+setTimeout(()=>div.classList.remove("new"),15000);
+seen[id]=true;
+}
+
+div.innerHTML=`<b>${r.type}</b><br>${r.text}<br><small>${r.time}</small>`;
+chat.appendChild(div);
+});
+
+// Stats
+document.querySelector(".stat.Kritik").innerText="Kritik: "+stats.Kritik;
+document.querySelector(".stat.Lob").innerText="Lob: "+stats.Lob;
+document.querySelector(".stat.Frage").innerText="Frage: "+stats.Frage;
+document.querySelector(".stat.Vorschlag").innerText="Vorschlag: "+stats.Vorschlag;
+});
+
+// COUNTS
+const id=localStorage.getItem("id")||Date.now();
+localStorage.setItem("id",id);
+db.ref("members/"+id).set(true);
+db.ref("members/"+id).onDisconnect().remove();
+
+db.ref("members").on("value",s=>{
+db.ref("admins").once("value",a=>{
+const admins=a.val()||{};
+let count=0;
+s.forEach(c=>{if(!admins[c.key])count++});
+document.getElementById("members").innerText="👥 Mitglieder: "+count;
+});
+});
+
+db.ref("admins").on("value",s=>{
+const d=s.val();
+const c=d?Object.keys(d).length:0;
+document.getElementById("admins").innerText="👔 Vorstand: "+c;
 });
 </script>
-
 </body>
 </html>
