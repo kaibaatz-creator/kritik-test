@@ -231,9 +231,22 @@ db.ref("members/" + deviceId).remove();
   `;
 
   // Mitglieder zählen
-  db.ref("members").on("value",snap=>{
-    document.getElementById("members").innerText="👥 Mitglieder: "+snap.numChildren();
+db.ref("members").on("value", snap => {
+  db.ref("admins").once("value", adminSnap => {
+
+    const admins = adminSnap.val() || {};
+    let count = 0;
+
+    snap.forEach(child => {
+      if (!admins[child.key]) {
+        count++;
+      }
+    });
+
+    document.getElementById("members").innerText =
+      "👥 Mitglieder: " + count;
   });
+});
 
   // Vorstand zählen
 const MAX_ADMINS = 5;
