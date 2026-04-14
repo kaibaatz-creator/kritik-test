@@ -181,9 +181,13 @@ function start(){
   localStorage.setItem("deviceId", deviceId);
 
   // Vorstand
-  const adminRef = db.ref("admins/" + deviceId);
-  adminRef.set(true);
-  adminRef.onDisconnect().remove();
+// Vorstand
+const adminRef = db.ref("admins/" + deviceId);
+adminRef.set(true);
+adminRef.onDisconnect().remove();
+
+// ❌ Admin darf KEIN Mitglied sein
+db.ref("members/" + deviceId).remove();
 
   // Mitglieder
   const memberRef = db.ref("members/" + deviceId);
@@ -232,9 +236,13 @@ function start(){
   });
 
   // Vorstand zählen
-  db.ref("admins").on("value",snap=>{
-    document.getElementById("admins").innerText="👔 Vorstand: "+snap.numChildren();
-  });
+const MAX_ADMINS = 5;
+
+db.ref("admins").on("value",snap=>{
+  const count = snap.numChildren();
+  document.getElementById("admins").innerText =
+    "👔 Vorstand: " + count + " / " + MAX_ADMINS;
+});
 
   load();
   setInterval(load,3000);
