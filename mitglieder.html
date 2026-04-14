@@ -11,10 +11,6 @@
 <style>
 body {
   margin: 0;
-  height: 100vh;              /* 👈 WICHTIG */
-  display: flex;              /* 👈 WICHTIG */
-  justify-content: center;    /* 👈 horizontal */
-  align-items: center;        /* 👈 vertikal */
   background: linear-gradient(180deg, #0f0f0f, #1a1a1a);
   font-family: Arial;
   color: white;
@@ -31,6 +27,10 @@ body {
   padding:30px;
   border-radius:15px;
   box-shadow:0 0 20px rgba(0,0,0,0.5);
+
+  max-width: 90%;
+  width: 350px;
+  margin: auto;   /* 👈 DAS IST DER TRICK */
 }
 
 input,button{
