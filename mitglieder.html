@@ -161,13 +161,21 @@ const db = firebase.database();
 const SESSION_TIME = 15 * 60 * 1000;
 const loginTime = localStorage.getItem("loginTimeMembers");
 
-// 🔥 FORCE LOGOUT (IMMER AKTIV)
+// 🔥 Logout Listener (mit Schutz gegen Loop)
+let firstLoadMembers = true;
+
 db.ref("settings/forceLogoutMembers").on("value", snap => {
+
+  if(firstLoadMembers){
+    firstLoadMembers = false;
+    return;
+  }
 
   const logoutTime = snap.val() || 0;
   const loginTime = localStorage.getItem("loginTimeMembers") || 0;
 
   if (Number(loginTime) < Number(logoutTime)) {
+
     localStorage.removeItem("loginTimeMembers");
 
     const deviceId = localStorage.getItem("deviceId");
