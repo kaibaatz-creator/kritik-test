@@ -13,14 +13,56 @@
 body{margin:0;background:#000;color:white;font-family:Arial;text-align:center}
 .logo{height:140px;margin-top:20px}
 
-textarea{width:90%;height:120px;border-radius:12px;padding:10px;font-size:18px}
+textarea{
+width:90%;
+height:120px;
+border-radius:12px;
+padding:10px;
+font-size:18px;
+}
 
-button{padding:12px;border-radius:10px;border:none;margin:5px;background:#00ff99}
+button{
+padding:12px;
+border-radius:10px;
+border:none;
+margin:5px;
+background:#00ff99;
+font-size:16px;
+}
 
-.msg{background:#1e1e1e;margin:12px;padding:16px;border-radius:14px;text-align:left}
+/* STATS */
+#stats{display:flex;justify-content:center;gap:10px;margin:15px;flex-wrap:wrap}
+.stat{background:#1e1e1e;padding:8px 12px;border-radius:12px}
+.stat.Kritik{color:#ff4444}
+.stat.Lob{color:#00ff99}
+.stat.Frage{color:#00bfff}
+.stat.Vorschlag{color:#ffaa00}
 
-.new{animation:blink 1s infinite}
+/* CHAT */
+.msg{
+background:#1e1e1e;
+margin:12px;
+padding:16px;
+border-radius:14px;
+text-align:left;
+font-size:18px;
+border-left:4px solid transparent;
+}
+
+.msg.Kritik{border-left-color:#ff4444}
+.msg.Lob{border-left-color:#00ff99}
+.msg.Frage{border-left-color:#00bfff}
+.msg.Vorschlag{border-left-color:#ffaa00}
+
+/* DELETE BUTTON */
+.delete{
+background:red;
+color:white;
+}
+
+/* BLINK */
 @keyframes blink{0%{opacity:1}50%{opacity:0.3}100%{opacity:1}}
+.new{animation:blink 1s infinite}
 </style>
 </head>
 
@@ -34,12 +76,19 @@ button{padding:12px;border-radius:10px;border:none;margin:5px;background:#00ff99
 👔 Vorstand: <span id="admins">0</span>
 </div>
 
-<textarea id="text"></textarea><br>
+<textarea id="text" placeholder="Dein Feedback"></textarea><br>
 
 <button onclick="send('Kritik')">Kritik</button>
 <button onclick="send('Lob')">Lob</button>
 <button onclick="send('Frage')">Frage</button>
 <button onclick="send('Vorschlag')">Vorschlag</button>
+
+<div id="stats">
+<div class="stat Kritik">Kritik: 0</div>
+<div class="stat Lob">Lob: 0</div>
+<div class="stat Frage">Frage: 0</div>
+<div class="stat Vorschlag">Vorschlag: 0</div>
+</div>
 
 <div id="chat"></div>
 
@@ -85,10 +134,22 @@ const text=document.getElementById("text").value;
 if(!text)return;
 
 db.ref("feedback").push({
-type,text,time:new Date().toLocaleTimeString()
+type:text?type:"",
+text,
+time:new Date().toLocaleTimeString()
 });
 
 document.getElementById("text").value="";
+}
+
+// DELETE MIT PASSWORT
+function del(id){
+const pw = prompt("Passwort?");
+if(pw !== "1"){
+alert("❌ Falsches Passwort");
+return;
+}
+db.ref("feedback/"+id).remove();
 }
 
 // LIVE
@@ -100,19 +161,37 @@ const chat=document.getElementById("chat");
 
 chat.innerHTML="";
 
-Object.entries(data).reverse().forEach(([id,r])=>{
-const div=document.createElement("div");
-div.className="msg";
+let stats={Kritik:0,Lob:0,Frage:0,Vorschlag:0};
 
+Object.entries(data).reverse().forEach(([id,r])=>{
+
+if(stats[r.type]!=undefined) stats[r.type]++;
+
+const div=document.createElement("div");
+div.className="msg "+r.type;
+
+// BLINK
 if(!seen[id]){
 div.classList.add("new");
 setTimeout(()=>div.classList.remove("new"),15000);
 seen[id]=true;
 }
 
-div.innerHTML=`<b>${r.type}</b><br>${r.text}`;
+div.innerHTML=`
+<b>${r.type}</b><br>
+${r.text}<br>
+<small>${r.time}</small><br>
+<button class="delete" onclick="del('${id}')">Löschen</button>
+`;
+
 chat.appendChild(div);
 });
+
+// stats update
+document.querySelector(".stat.Kritik").innerText="Kritik: "+stats.Kritik;
+document.querySelector(".stat.Lob").innerText="Lob: "+stats.Lob;
+document.querySelector(".stat.Frage").innerText="Frage: "+stats.Frage;
+document.querySelector(".stat.Vorschlag").innerText="Vorschlag: "+stats.Vorschlag;
 });
 </script>
 
