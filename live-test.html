@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live Feedback Komplett Test</title>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+<style>
+body {
+  margin:0;
+  background:#000;
+  color:white;
+  font-family:Arial;
+  text-align:center;
+}
+
+.logo {
+  height:80px;
+  margin:20px auto 10px;
+  display:block;
+}
+
+textarea {
+  width:90%;
+  max-width:400px;
+  height:100px;
+  border-radius:10px;
+  padding:10px;
+  border:none;
+}
+
+button {
+  margin:5px;
+  padding:10px 15px;
+  border:none;
+  border-radius:10px;
+  background:#00ff99;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.msg {
+  background:#1e1e1e;
+  margin:10px auto;
+  padding:15px;
+  border-radius:12px;
+  max-width:500px;
+  text-align:left;
+  border-left:4px solid #00ff99;
+}
+
+.stats {
+  margin:15px;
+}
+
+.stat {
+  display:inline-block;
+  margin:5px;
+  padding:8px 12px;
+  background:#222;
+  border-radius:10px;
+}
+</style>
+</head>
+
+<body>
+
+<img src="logo.png" class="logo">
+
+<h2>👥 Live Feedback Test</h2>
+
+<textarea id="text" placeholder="Dein Feedback"></textarea><br>
+
+<button onclick="send('Lob')">Lob</button>
+<button onclick="send('Frage')">Frage</button>
+<button onclick="send('Kritik')">Kritik</button>
+<button onclick="send('Vorschlag')">Vorschlag</button>
+
+<div class="stats">
+  <div class="stat" id="kritik">Kritik: 0</div>
+  <div class="stat" id="lob">Lob: 0</div>
+  <div class="stat" id="frage">Frage: 0</div>
+  <div class="stat" id="vorschlag">Vorschlag: 0</div>
+</div>
+
+<h3>Live Feed</h3>
+<div id="chat"></div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyCFjUj-XSN0YnvAilerXPkXbw2iR2ixBv8",
+  authDomain: "kritik-system.firebaseapp.com",
+  databaseURL: "https://kritik-system-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "kritik-system"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// 🔥 SENDEN
+function send(type){
+  const text = document.getElementById("text").value;
+
+  if(!text){
+    alert("Text fehlt");
+    return;
+  }
+
+  db.ref("feedback").push({
+    type: type,
+    text: text,
+    time: new Date().toLocaleString()
+  });
+
+  document.getElementById("text").value="";
+}
+
+// 🔥 LIVE ANZEIGE
+db.ref("feedback").on("value", snap => {
+
+  const data = snap.val() || {};
+  const list = Object.values(data);
+
+  let stats={Kritik:0,Lob:0,Frage:0,Vorschlag:0};
+
+  const chat = document.getElementById("chat");
+  chat.innerHTML = "";
+
+  list.reverse().forEach(r=>{
+
+    if(stats[r.type] !== undefined) stats[r.type]++;
+
+    const div = document.createElement("div");
+    div.className="msg";
+
+    div.innerHTML = `
+      <b>${r.type}</b><br>
+      ${r.text}<br>
+      <small>${r.time}</small>
+    `;
+
+    chat.appendChild(div);
+  });
+
+  document.getElementById("kritik").innerText="Kritik: "+stats.Kritik;
+  document.getElementById("lob").innerText="Lob: "+stats.Lob;
+  document.getElementById("frage").innerText="Frage: "+stats.Frage;
+  document.getElementById("vorschlag").innerText="Vorschlag: "+stats.Vorschlag;
+
+});
+</script>
+
+</body>
+</html>
