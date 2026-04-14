@@ -4,99 +4,42 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Mitglieder Feedback</title>
+<title>Mitglieder</title>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
 <style>
 body{margin:0;background:#000;color:white;font-family:Arial;text-align:center}
-
 .logo{height:140px;margin-top:20px}
 
-textarea{
-width:90%;
-height:120px;
-border-radius:12px;
-padding:10px;
-font-size:18px;
-}
+textarea{width:90%;height:120px;border-radius:12px;padding:10px;font-size:18px}
 
-button{
-padding:12px;
-border-radius:10px;
-border:none;
-margin:5px;
-background:#00ff99;
-font-size:16px;
-}
+button{padding:12px;border-radius:10px;border:none;margin:5px;background:#00ff99}
 
-/* STATS */
-#stats{display:flex;justify-content:center;gap:10px;margin:15px;flex-wrap:wrap}
-.stat{background:#1e1e1e;padding:8px 12px;border-radius:12px}
-.stat.Kritik{color:#ff4444}
-.stat.Lob{color:#00ff99}
-.stat.Frage{color:#00bfff}
-.stat.Vorschlag{color:#ffaa00}
+.msg{background:#1e1e1e;margin:12px;padding:16px;border-radius:14px;text-align:left}
 
-/* FILTER */
-#filters{display:flex;gap:10px;padding:10px;flex-wrap:wrap}
-#filters button{flex:1;min-width:100px;background:#1e1e1e;color:white}
-#filters .active{background:#00ff99;color:black}
-
-/* CHAT */
-.msg{
-background:#1e1e1e;
-margin:12px;
-padding:16px;
-border-radius:14px;
-text-align:left;
-font-size:18px;
-border-left:4px solid transparent;
-}
-
-.msg.Kritik{border-left-color:#ff4444}
-.msg.Lob{border-left-color:#00ff99}
-.msg.Frage{border-left-color:#00bfff}
-.msg.Vorschlag{border-left-color:#ffaa00}
-
-/* BLINK */
-@keyframes blink{0%{opacity:1}50%{opacity:0.3}100%{opacity:1}}
 .new{animation:blink 1s infinite}
+@keyframes blink{0%{opacity:1}50%{opacity:0.3}100%{opacity:1}}
 </style>
 </head>
 
 <body>
 
 <img src="logo.png" class="logo">
-<h2>👥 Mitglieder Feedback</h2>
+<h2>👥 Mitglieder</h2>
 
 <div>
 👥 Mitglieder: <span id="members">0</span><br>
 👔 Vorstand: <span id="admins">0</span>
 </div>
 
-<textarea id="text" placeholder="Dein Feedback"></textarea><br>
+<textarea id="text"></textarea><br>
 
 <button onclick="send('Kritik')">Kritik</button>
 <button onclick="send('Lob')">Lob</button>
 <button onclick="send('Frage')">Frage</button>
 <button onclick="send('Vorschlag')">Vorschlag</button>
-
-<div id="stats">
-<div class="stat Kritik">Kritik: 0</div>
-<div class="stat Lob">Lob: 0</div>
-<div class="stat Frage">Frage: 0</div>
-<div class="stat Vorschlag">Vorschlag: 0</div>
-</div>
-
-<div id="filters">
-<button class="active" onclick="setFilter('all',this)">Alle</button>
-<button onclick="setFilter('Kritik',this)">Kritik</button>
-<button onclick="setFilter('Lob',this)">Lob</button>
-<button onclick="setFilter('Frage',this)">Frage</button>
-<button onclick="setFilter('Vorschlag',this)">Vorschlag</button>
-</div>
 
 <div id="chat"></div>
 
@@ -111,23 +54,32 @@ projectId:"kritik-system"
 firebase.initializeApp(config);
 const db=firebase.database();
 
-// 🔥 MEMBER REGISTRIEREN
+// MEMBER REGISTRIEREN
 const memberId = localStorage.getItem("memberId") || Date.now().toString();
 localStorage.setItem("memberId", memberId);
+
 db.ref("members/"+memberId).set(true);
 db.ref("members/"+memberId).onDisconnect().remove();
 
-let filter="all";
-let dataCache={};
-let seen={};
-
-function setFilter(f,el){
-filter=f;
-document.querySelectorAll("#filters button").forEach(b=>b.classList.remove("active"));
-el.classList.add("active");
-render();
+// LOGOUT BEI KICK
+db.ref("members").on("value", snap=>{
+const data=snap.val()||{};
+if(!data[memberId]){
+alert("⚠️ Du wurdest gekickt");
+localStorage.removeItem("memberId");
+location.reload();
 }
+});
 
+// COUNTS
+db.ref("members").on("value",s=>{
+document.getElementById("members").innerText=s.numChildren();
+});
+db.ref("admins").on("value",s=>{
+document.getElementById("admins").innerText=s.numChildren();
+});
+
+// SEND
 function send(type){
 const text=document.getElementById("text").value;
 if(!text)return;
@@ -139,56 +91,28 @@ type,text,time:new Date().toLocaleTimeString()
 document.getElementById("text").value="";
 }
 
+// LIVE
+let seen={};
+
 db.ref("feedback").on("value",snap=>{
-dataCache=snap.val()||{};
-render();
-});
-
-function render(){
+const data=snap.val()||{};
 const chat=document.getElementById("chat");
-
-let stats={Kritik:0,Lob:0,Frage:0,Vorschlag:0};
 
 chat.innerHTML="";
 
-Object.entries(dataCache).reverse().forEach(([id,r])=>{
-
-if(stats[r.type]!=undefined) stats[r.type]++;
-
-if(filter!=="all" && r.type!==filter) return;
-
+Object.entries(data).reverse().forEach(([id,r])=>{
 const div=document.createElement("div");
-div.className="msg "+r.type;
+div.className="msg";
 
-// BLINK
 if(!seen[id]){
 div.classList.add("new");
 setTimeout(()=>div.classList.remove("new"),15000);
 seen[id]=true;
 }
 
-div.innerHTML=`
-<b>${r.type}</b><br>
-${r.text}<br>
-<small>${r.time}</small>
-`;
-
+div.innerHTML=`<b>${r.type}</b><br>${r.text}`;
 chat.appendChild(div);
 });
-
-// stats update
-document.querySelector(".stat.Kritik").innerText="Kritik: "+stats.Kritik;
-document.querySelector(".stat.Lob").innerText="Lob: "+stats.Lob;
-document.querySelector(".stat.Frage").innerText="Frage: "+stats.Frage;
-document.querySelector(".stat.Vorschlag").innerText="Vorschlag: "+stats.Vorschlag;
-}
-
-db.ref("members").on("value",snap=>{
-document.getElementById("members").innerText=snap.numChildren();
-});
-
-db.ref("admins").on("value",snap=>{
-document.getElementById("admins").innerText=snap.numChildren();
 });
 </script>
 
