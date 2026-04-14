@@ -1,89 +1,133 @@
-<!-- NUR BODY + SCRIPT tauschen -->
-<body>
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vorstand Live Feedback</title>
 
-<div class="header">
-<img src="logo.png" class="logo">
-<div>📊 Vorstand Live Feedback</div>
-</div>
-
-<div id="counts">
-<div id="members">👥 Mitglieder: 0</div>
-<div id="admins">👔 Vorstand: 0 / 5</div>
-</div>
-
-<div class="actions">
-<button onclick="kickAdmins()">Vorstand kicken</button>
-<button onclick="kickMembers()">Mitglieder kicken</button>
-</div>
-
-<div id="stats"></div>
-<div id="filters"></div>
-<div id="chat"></div>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
 <style>
-body{margin:0;background:#000;color:white;font-family:Arial}
+body{margin:0;background:#000;color:white;font-family:Arial;text-align:center}
+.logo{height:80px;margin:20px auto}
 
-/* MOBILE FIX */
-.header{text-align:center;padding:10px}
-.logo{height:70px}
+#stats{display:flex;justify-content:center;gap:10px;margin:10px}
+.stat{background:#1e1e1e;padding:6px 10px;border-radius:10px}
 
-.actions{
-display:flex;
-justify-content:center;
-gap:10px;
-flex-wrap:wrap;
-}
+#filters{display:flex;gap:10px;padding:10px;max-width:700px;margin:auto}
+#filters button{flex:1;background:#1e1e1e;color:white;padding:10px;border-radius:10px}
+#filters button.active{background:#00ff99;color:black}
 
-button{
-padding:12px;
-border-radius:10px;
-border:none;
-font-size:16px;
-}
-
-/* MOBILE CHAT */
 .msg{
-margin:10px;
+background:#1e1e1e;
+margin:10px auto;
 padding:15px;
 border-radius:12px;
-background:#1e1e1e;
-font-size:16px;
+max-width:700px;
+text-align:left;
 }
 
-/* FULL WIDTH MOBILE */
-#chat{width:100%}
+button{padding:10px;border-radius:10px;border:none;margin:5px}
+
+.delete{background:red;color:white}
+.kick{background:#0066ff;color:white}
 </style>
+</head>
+
+<body>
+
+<img src="logo.png" class="logo">
+<h2>📊 Vorstand Live Feedback</h2>
+
+<div id="counts">
+👥 Mitglieder: <span id="members">0</span><br>
+👔 Vorstand: <span id="admins">0</span> / 5
+</div>
+
+<button class="kick" onclick="kickMembers()">Mitglieder kicken</button>
+<button class="kick" onclick="kickAdmins()">Vorstand kicken</button>
+
+<div id="stats"></div>
+
+<div id="filters">
+<button class="active" onclick="setFilter('all',this)">Alle</button>
+<button onclick="setFilter('Kritik',this)">Kritik</button>
+<button onclick="setFilter('Lob',this)">Lob</button>
+<button onclick="setFilter('Frage',this)">Frage</button>
+<button onclick="setFilter('Vorschlag',this)">Vorschlag</button>
+</div>
+
+<div id="chat"></div>
 
 <script>
-const db = firebase.database();
+const firebaseConfig={
+apiKey:"AIzaSyCFjUj-XSN0YnvAilerXPkXbw2iR2ixBv8",
+authDomain:"kritik-system.firebaseapp.com",
+databaseURL:"https://kritik-system-default-rtdb.europe-west1.firebasedatabase.app",
+projectId:"kritik-system"
+};
 
-// 🔥 WICHTIG: ADMIN ID SEPARAT
-const adminId = localStorage.getItem("adminId") || "admin_" + Date.now();
-localStorage.setItem("adminId", adminId);
+firebase.initializeApp(firebaseConfig);
+const db=firebase.database();
 
-// ADMIN REGISTRIEREN
-db.ref("admins/"+adminId).set(true);
-db.ref("admins/"+adminId).onDisconnect().remove();
+let filter="all";
 
-// 🔥 MEMBERS ZÄHLEN (OHNE ADMINS)
-db.ref("members").on("value",snap=>{
-db.ref("admins").once("value",a=>{
-const admins=a.val()||{};
-let count=0;
-snap.forEach(c=>{
-if(!admins[c.key]) count++;
+function setFilter(f,el){
+filter=f;
+document.querySelectorAll("#filters button").forEach(b=>b.classList.remove("active"));
+el.classList.add("active");
+load();
+}
+
+// 🔥 LIVE FEEDBACK
+db.ref("feedback").on("value",load);
+
+function load(snap){
+const data=snap?.val() || {};
+const chat=document.getElementById("chat");
+const statsDiv=document.getElementById("stats");
+
+chat.innerHTML="";
+statsDiv.innerHTML="";
+
+let stats={Kritik:0,Lob:0,Frage:0,Vorschlag:0};
+
+Object.entries(data).reverse().forEach(([id,r])=>{
+
+if(stats[r.type]!=undefined) stats[r.type]++;
+
+if(filter!=="all" && r.type!==filter) return;
+
+const div=document.createElement("div");
+div.className="msg";
+
+div.innerHTML=`
+<b>${r.type}</b><br>
+${r.text}<br>
+<small>${r.time}</small><br>
+<button class="delete" onclick="del('${id}')">Löschen</button>
+`;
+
+chat.appendChild(div);
 });
-document.getElementById("members").innerText="👥 Mitglieder: "+count;
-});
-});
 
-// ADMINS ZÄHLEN
-db.ref("admins").on("value",snap=>{
-const c = snap.numChildren();
-document.getElementById("admins").innerText="👔 Vorstand: "+c+" / 5";
-});
+// stats anzeigen
+for(let k in stats){
+const s=document.createElement("div");
+s.className="stat";
+s.innerText=k+": "+stats[k];
+statsDiv.appendChild(s);
+}
+}
 
-// 🔥 KICK FIX
+// DELETE
+function del(id){
+if(prompt("Passwort?")!=="1") return;
+db.ref("feedback/"+id).remove();
+}
+
+// KICK
 function kickMembers(){
 if(prompt("PW?")!=="2") return;
 db.ref("members").remove();
@@ -92,8 +136,17 @@ db.ref("members").remove();
 function kickAdmins(){
 if(prompt("PW?")!=="2") return;
 db.ref("admins").remove();
-location.reload();
 }
+
+// COUNTS
+db.ref("members").on("value",snap=>{
+document.getElementById("members").innerText=snap.numChildren();
+});
+
+db.ref("admins").on("value",snap=>{
+document.getElementById("admins").innerText=snap.numChildren();
+});
 </script>
 
 </body>
+</html>
