@@ -1,93 +1,127 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Mitglieder Feedback</title>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+<style>
+body{margin:0;background:#000;color:white;font-family:Arial;text-align:center}
+.logo{height:80px;margin:20px auto}
+
+textarea{
+width:90%;
+max-width:500px;
+height:100px;
+border-radius:10px;
+padding:10px;
+}
+
+button{
+padding:10px;
+border-radius:10px;
+border:none;
+margin:5px;
+background:#00ff99;
+}
+
+.msg{
+background:#1e1e1e;
+margin:10px auto;
+padding:15px;
+border-radius:12px;
+max-width:700px;
+text-align:left;
+}
+
+#filters{display:flex;gap:10px;padding:10px;max-width:700px;margin:auto}
+#filters button{flex:1;background:#1e1e1e;color:white}
+#filters button.active{background:#00ff99;color:black}
+</style>
+</head>
+
 <body>
 
-<div class="header">
 <img src="logo.png" class="logo">
-<div>👥 Mitglieder Feedback</div>
-</div>
+<h2>👥 Mitglieder Feedback</h2>
 
-<div id="counts">
-<div id="members">👥 Mitglieder: 0</div>
-<div id="admins">👔 Vorstand: 0</div>
-</div>
+<textarea id="text" placeholder="Dein Feedback"></textarea><br>
 
-<textarea id="text"></textarea>
-
-<div class="buttons">
 <button onclick="send('Kritik')">Kritik</button>
 <button onclick="send('Lob')">Lob</button>
 <button onclick="send('Frage')">Frage</button>
 <button onclick="send('Vorschlag')">Vorschlag</button>
+
+<div id="filters">
+<button class="active" onclick="setFilter('all',this)">Alle</button>
+<button onclick="setFilter('Kritik',this)">Kritik</button>
+<button onclick="setFilter('Lob',this)">Lob</button>
+<button onclick="setFilter('Frage',this)">Frage</button>
+<button onclick="setFilter('Vorschlag',this)">Vorschlag</button>
 </div>
 
 <div id="chat"></div>
 
-<style>
-body{margin:0;background:#000;color:white;font-family:Arial}
-
-/* MOBILE FIX */
-.logo{height:70px;margin:auto;display:block}
-
-textarea{
-width:90%;
-margin:10px auto;
-display:block;
-height:100px;
-font-size:16px;
-}
-
-.buttons{
-display:flex;
-flex-wrap:wrap;
-justify-content:center;
-gap:10px;
-}
-
-button{
-padding:12px;
-font-size:16px;
-border-radius:10px;
-border:none;
-background:#00ff99;
-}
-
-/* CHAT */
-.msg{
-margin:10px;
-padding:15px;
-border-radius:12px;
-background:#1e1e1e;
-font-size:16px;
-}
-
-#chat{width:100%}
-</style>
-
 <script>
-const db = firebase.database();
+const firebaseConfig={
+apiKey:"AIzaSyCFjUj-XSN0YnvAilerXPkXbw2iR2ixBv8",
+authDomain:"kritik-system.firebaseapp.com",
+databaseURL:"https://kritik-system-default-rtdb.europe-west1.firebasedatabase.app",
+projectId:"kritik-system"
+};
 
-// 🔥 MEMBER ID SEPARAT
-const memberId = localStorage.getItem("memberId") || "member_" + Date.now();
-localStorage.setItem("memberId", memberId);
+firebase.initializeApp(firebaseConfig);
+const db=firebase.database();
 
-// REGISTER
-db.ref("members/"+memberId).set(true);
-db.ref("members/"+memberId).onDisconnect().remove();
+let filter="all";
 
-// COUNTS FIX
-db.ref("members").on("value",snap=>{
-db.ref("admins").once("value",a=>{
-const admins=a.val()||{};
-let count=0;
-snap.forEach(c=>{
-if(!admins[c.key]) count++;
-});
-document.getElementById("members").innerText="👥 Mitglieder: "+count;
-});
+function setFilter(f,el){
+filter=f;
+document.querySelectorAll("#filters button").forEach(b=>b.classList.remove("active"));
+el.classList.add("active");
+load();
+}
+
+// SEND
+function send(type){
+const text=document.getElementById("text").value;
+if(!text)return;
+
+db.ref("feedback").push({
+type,text,time:new Date().toLocaleTimeString()
 });
 
-db.ref("admins").on("value",snap=>{
-document.getElementById("admins").innerText="👔 Vorstand: "+snap.numChildren();
+document.getElementById("text").value="";
+}
+
+// LIVE
+db.ref("feedback").on("value",load);
+
+function load(snap){
+const data=snap?.val() || {};
+const chat=document.getElementById("chat");
+chat.innerHTML="";
+
+Object.values(data).reverse().forEach(r=>{
+if(filter!=="all" && r.type!==filter) return;
+
+const div=document.createElement("div");
+div.className="msg";
+
+div.innerHTML=`
+<b>${r.type}</b><br>
+${r.text}<br>
+<small>${r.time}</small>
+`;
+
+chat.appendChild(div);
 });
+}
 </script>
 
 </body>
+</html>
