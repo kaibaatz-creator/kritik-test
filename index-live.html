@@ -2,34 +2,63 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>Vorstand Live</title>
+<title>Feedback Liste</title>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
 <style>
-body{margin:0;background:#000;color:white;font-family:Arial}
-.header{text-align:center;padding:15px;border-bottom:1px solid #333}
-.logo{height:90px;display:block;margin:0 auto 10px}
-.msg{background:#1e1e1e;margin:10px auto;padding:14px;border-radius:14px;max-width:700px}
-button{margin:5px;padding:10px;border-radius:10px;border:none}
-.delete{background:#ff4444}
-.kick{background:red;color:white}
+body{background:#000;color:white;font-family:Arial;padding:20px}
+
+/* LEGENDE */
+.legend{margin-bottom:20px}
+.legend span{
+  padding:6px 10px;
+  border-radius:8px;
+  margin-right:5px;
+  display:inline-block;
+}
+.Kritik{background:#ff4444}
+.Lob{background:#00ff99;color:black}
+.Frage{background:#00bfff}
+.Vorschlag{background:#ffaa00}
+
+/* TABLE */
+table{width:100%;border-collapse:collapse}
+th,td{padding:10px;border-bottom:1px solid #333;text-align:left}
+th{background:#111}
+
+/* STATS */
+.stats{margin:15px 0}
 </style>
 </head>
 
 <body>
 
-<div class="header">
-<img src="logo.png" class="logo">
-<div>👔 Vorstand Live Feedback</div>
+<h2>📋 Feedback Übersicht</h2>
+
+<div class="legend">
+  <span class="Kritik">Kritik</span>
+  <span class="Lob">Lob</span>
+  <span class="Frage">Frage</span>
+  <span class="Vorschlag">Vorschlag</span>
 </div>
 
-<div style="text-align:center">
-<button class="kick" onclick="kickMembers()">Mitglieder kicken</button>
+<div class="stats">
+  👥 Aktuell online: <span id="current">0</span><br>
+  🚀 Max gleichzeitig: <span id="max">0</span>
 </div>
 
-<div id="chat"></div>
+<table>
+<thead>
+<tr>
+<th>Art</th>
+<th>Text</th>
+<th>Zeit</th>
+</tr>
+</thead>
+<tbody id="table"></tbody>
+</table>
 
 <script>
 const firebaseConfig={
@@ -41,38 +70,41 @@ projectId:"kritik-system"
 firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
 
-// LIVE
+// 🔥 FEEDBACK LISTE
 db.ref("feedback").on("value",snap=>{
-const data=snap.val()||{};
-const chat=document.getElementById("chat");
-chat.innerHTML="";
+  const data=snap.val()||{};
+  const table=document.getElementById("table");
+  table.innerHTML="";
 
-Object.entries(data).reverse().forEach(([id,r])=>{
-const div=document.createElement("div");
-div.className="msg";
+  Object.values(data).reverse().forEach(r=>{
+    const row=document.createElement("tr");
 
-div.innerHTML=`
-<b>${r.type}</b><br>
-${r.text}<br>
-<small>${r.time}</small><br>
-<button class="delete" onclick="del('${id}')">Löschen</button>
-`;
+    row.innerHTML=`
+      <td class="${r.type}">${r.type}</td>
+      <td>${r.text}</td>
+      <td>${r.time}</td>
+    `;
 
-chat.appendChild(div);
-});
+    table.appendChild(row);
+  });
 });
 
-// löschen
-function del(id){
-db.ref("feedback/"+id).remove();
-}
+// 🔥 ONLINE COUNT + MAX TRACKING
+db.ref("members").on("value",snap=>{
+  const count=snap.numChildren();
+  document.getElementById("current").innerText=count;
 
-// kicken
-function kickMembers(){
-if(confirm("Alle Mitglieder kicken?")){
-db.ref("members").remove();
-}
-}
+  db.ref("stats/maxMembers").once("value",s=>{
+    const max=s.val()||0;
+
+    if(count>max){
+      db.ref("stats/maxMembers").set(count);
+      document.getElementById("max").innerText=count;
+    }else{
+      document.getElementById("max").innerText=max;
+    }
+  });
+});
 </script>
 
 </body>
