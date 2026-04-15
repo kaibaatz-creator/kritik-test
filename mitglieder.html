@@ -28,7 +28,6 @@ body {
   margin: 0 auto 10px auto;
 }
 
-/* LOGIN */
 #login {
   position: absolute;
   top: 50%;
@@ -109,6 +108,7 @@ button{
 }
 
 .msg.Frage{border-left:4px solid #00bfff;}
+.msg.Kritik{border-left:4px solid #ff4444;}
 .msg.Lob{border-left:4px solid #00ff99;}
 .msg.Vorschlag{border-left:4px solid #ffaa00;}
 </style>
@@ -158,6 +158,21 @@ function login(){
 // START
 function start(){
 
+  // 🔥 KICK LISTENER
+  db.ref("settings/forceLogoutMembers").on("value", snap => {
+    const logoutTime = snap.val();
+    const myLoginTime = localStorage.getItem("loginTimeMembers");
+
+    if (logoutTime && myLoginTime && logoutTime > myLoginTime) {
+      alert("Du wurdest ausgeloggt!");
+      localStorage.removeItem("loginTimeMembers");
+      location.reload();
+    }
+  });
+
+  const myLoginTime = localStorage.getItem("loginTimeMembers");
+  if (!myLoginTime) return;
+
   document.getElementById("login").style.display = "none";
 
   const deviceId = localStorage.getItem("deviceId") || Date.now().toString();
@@ -185,9 +200,18 @@ function start(){
     <div class="stat Vorschlag">Vorschlag: 0</div>
   </div>
 
+  <!-- 🎨 LEGENDE -->
+  <div style="display:flex;justify-content:center;gap:15px;margin:10px;flex-wrap:wrap;">
+    <div style="color:#ff4444;">■ Kritik</div>
+    <div style="color:#00ff99;">■ Lob</div>
+    <div style="color:#00bfff;">■ Frage</div>
+    <div style="color:#ffaa00;">■ Vorschlag</div>
+  </div>
+
   <div id="filters">
     <button class="active" onclick="setFilter('all', this)">Alle</button>
     <button onclick="setFilter('Frage', this)">Frage</button>
+    <button onclick="setFilter('Kritik', this)">Kritik</button>
     <button onclick="setFilter('Lob', this)">Lob</button>
     <button onclick="setFilter('Vorschlag', this)">Vorschlag</button>
   </div>
@@ -195,7 +219,6 @@ function start(){
   <div id="chat"></div>
   `;
 
-  // 👥 Mitglieder zählen (ohne Vorstand)
   db.ref("members").on("value", snap => {
     db.ref("admins").once("value", adminSnap => {
 
@@ -213,7 +236,6 @@ function start(){
     });
   });
 
-  // 👔 Vorstand zählen (FIX)
   db.ref("admins").on("value", snap => {
     const data = snap.val();
     const count = data ? Object.keys(data).length : 0;
@@ -255,7 +277,7 @@ async function load(){
     return {...r,type,time};
   });
 
-  let display = all.filter(r=>r.type!=="Kritik");
+  let display = all;
 
   if(currentFilter!=="all"){
     display = display.filter(r=>r.type===currentFilter);
@@ -286,5 +308,3 @@ async function load(){
 
 </body>
 </html>
-
-
