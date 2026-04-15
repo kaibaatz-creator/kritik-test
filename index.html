@@ -10,16 +10,18 @@
 
 <style>
 body { margin:0; background:#000; font-family:Arial; color:white; }
+
 .header { text-align:center; padding:15px; border-bottom:1px solid #333; }
-.logo { height:100px; display:block; margin:0 auto 10px; }
-
-#login { display:flex; height:100vh; justify-content:center; align-items:center; flex-direction:column; }
-
-input,button{ padding:12px; border-radius:10px; border:none; margin:8px; }
-button{ background:#00ff99; font-weight:bold; cursor:pointer; }
+.logo { height:100px; display:block; margin:auto; }
 
 .stat{ background:#1e1e1e; padding:6px 10px; border-radius:10px; }
-.msg{ background:#1e1e1e; margin:10px 0; padding:14px; border-radius:14px; }
+
+.msg{
+  background:#1e1e1e;
+  margin:10px 0;
+  padding:14px;
+  border-radius:14px;
+}
 
 .msg.Frage{border-left:4px solid #00bfff;}
 .msg.Kritik{border-left:4px solid #ff4444;}
@@ -31,8 +33,7 @@ button{ background:#00ff99; font-weight:bold; cursor:pointer; }
 <body>
 
 <div id="login">
-  <h2>Vorstand Login</h2>
-  <input id="pw" type="password" placeholder="Passwort">
+  <input id="pw" type="password" placeholder="Admin Passwort">
   <button onclick="login()">Login</button>
 </div>
 
@@ -47,27 +48,13 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-const SESSION_TIME = 30*60*1000;
-const loginTime = localStorage.getItem("loginTimeAdmin");
-
-if(loginTime && Date.now()-loginTime<SESSION_TIME) start();
-
 function login(){
   if(document.getElementById("pw").value==="1"){
-    localStorage.setItem("loginTimeAdmin", Date.now());
     start();
   }
 }
 
 function start(){
-
-  db.ref("settings/forceLogout").on("value", snap=>{
-    const t=snap.val();
-    if(t && t>localStorage.getItem("loginTimeAdmin")){
-      localStorage.removeItem("loginTimeAdmin");
-      location.reload();
-    }
-  });
 
   document.body.innerHTML=`
   <div class="header">
@@ -76,13 +63,13 @@ function start(){
   </div>
 
   <div style="text-align:center;">
-    <button onclick="generatePassword()" style="background:orange;color:black;">
-      Neues Mitglieder Passwort
-    </button>
+    <button onclick="kickAdmins()" style="background:red;color:white;">Vorstand kicken</button>
+    <button onclick="kickMembers()" style="background:blue;color:white;">Mitglieder kicken</button>
+    <button onclick="generatePassword()" style="background:orange;">Neues Mitglieder Passwort</button>
     <div id="currentPw"></div>
   </div>
 
-  <div id="stats" style="display:flex;justify-content:space-around;">
+  <div style="display:flex;justify-content:space-around;">
     <div class="stat Kritik">Kritik: 0</div>
     <div class="stat Lob">Lob: 0</div>
     <div class="stat Frage">Frage: 0</div>
@@ -101,7 +88,7 @@ function start(){
 
   db.ref("settings/memberPassword").on("value", snap=>{
     document.getElementById("currentPw").innerText =
-      "🔑 Code: "+(snap.val()||"-");
+      "🔑 Code: " + (snap.val()||"-");
   });
 
   load();
@@ -115,6 +102,22 @@ function generatePassword(){
   alert("Neues Passwort: "+newPw);
 }
 
+function kickAdmins(){
+  if(prompt("PW?")==="2"){
+    db.ref("admins").remove();
+    db.ref("settings/forceLogout").set(Date.now());
+    location.reload();
+  }
+}
+
+function kickMembers(){
+  if(prompt("PW?")==="2"){
+    db.ref("members").remove();
+    db.ref("settings/forceLogoutMembers").set(Date.now());
+    location.reload();
+  }
+}
+
 const url="https://opensheet.elk.sh/1d2Xf-u1DOMsqlXmwMi05VDD9O6sR4OsmBnQnVqjqGzg/Sheet1";
 
 async function load(){
@@ -125,12 +128,23 @@ async function load(){
   chat.innerHTML="";
 
   data.slice(-30).reverse().forEach(r=>{
+    let type="";
+    for(let k in r){
+      if(k.toLowerCase().includes("art")) type=r[k];
+    }
+
     const div=document.createElement("div");
-    div.className="msg "+r.Art;
-    div.innerHTML=`<b>${r.Art}</b><br>${r["Dein Feedback"]}`;
+    div.className="msg "+type;
+
+    div.innerHTML=`
+      <b>${type}</b><br>
+      ${r["Dein Feedback"]}
+    `;
+
     chat.appendChild(div);
   });
 }
 </script>
+
 </body>
 </html>
