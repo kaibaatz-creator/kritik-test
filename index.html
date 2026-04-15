@@ -16,6 +16,7 @@ body {
   color: white;
 }
 
+/* HEADER */
 .header {
   text-align: center;
   padding: 15px;
@@ -127,7 +128,6 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-/* SESSION */
 const SESSION_TIME = 30 * 60 * 1000;
 const loginTime = localStorage.getItem("loginTimeAdmin");
 
@@ -136,7 +136,7 @@ if (loginTime && (Date.now() - loginTime < SESSION_TIME)) {
   start();
 }
 
-// LOGIN
+// Login
 function login(){
   if(document.getElementById("pw").value==="1"){
     localStorage.setItem("loginTimeAdmin", Date.now());
@@ -148,8 +148,6 @@ function login(){
 
 // START
 function start(){
-
-  document.getElementById("login").style.display = "none";
 
   const deviceId = localStorage.getItem("deviceId") || Date.now().toString();
   localStorage.setItem("deviceId", deviceId);
@@ -166,7 +164,7 @@ function start(){
 
   <div id="counts">
     <div id="members">👥 Mitglieder: 0</div>
-    <div id="admins">👔 Vorstand: 0</div>
+    <div id="admins">👔 Vorstand: 0 / 5</div>
   </div>
 
   <div style="text-align:center;">
@@ -197,7 +195,6 @@ function start(){
   <div id="chat"></div>
   `;
 
-  // Mitglieder zählen (ohne Vorstand)
   db.ref("members").on("value", snap=>{
     db.ref("admins").once("value", adminSnap=>{
       const admins = adminSnap.val() || {};
@@ -211,18 +208,16 @@ function start(){
     });
   });
 
-  // Vorstand zählen
   db.ref("admins").on("value", snap=>{
-    const data = snap.val();
-    const count = data ? Object.keys(data).length : 0;
-    document.getElementById("admins").innerText="👔 Vorstand: "+count;
+    document.getElementById("admins").innerText=
+      "👔 Vorstand: "+snap.numChildren()+" / 5";
   });
 
   load();
   setInterval(load,3000);
 }
 
-// KICK FUNKTIONEN
+// KICK
 function kickAdmins(){
   const pw = prompt("Admin Passwort eingeben:");
   if(pw === "2"){
