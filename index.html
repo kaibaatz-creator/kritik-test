@@ -16,7 +16,6 @@ body {
   color: white;
 }
 
-/* HEADER */
 .header {
   text-align: center;
   padding: 15px;
@@ -29,7 +28,6 @@ body {
   margin: 0 auto 10px auto;
 }
 
-/* LOGIN */
 #login {
   display:flex;
   height:100vh;
@@ -129,14 +127,14 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
 const SESSION_TIME = 30 * 60 * 1000;
-const loginTime = localStorage.getItem("loginTimeAdmin");
 
-// Auto Login
+// AUTO LOGIN CHECK
+const loginTime = localStorage.getItem("loginTimeAdmin");
 if (loginTime && (Date.now() - loginTime < SESSION_TIME)) {
   start();
 }
 
-// Login
+// LOGIN
 function login(){
   if(document.getElementById("pw").value==="1"){
     localStorage.setItem("loginTimeAdmin", Date.now());
@@ -148,6 +146,21 @@ function login(){
 
 // START
 function start(){
+
+  // 🔥 FORCE LOGOUT LISTENER
+  db.ref("settings/forceLogout").on("value", snap => {
+    const logoutTime = snap.val();
+    const myLoginTime = localStorage.getItem("loginTimeAdmin");
+
+    if (logoutTime && myLoginTime && logoutTime > myLoginTime) {
+      alert("Du wurdest ausgeloggt!");
+      localStorage.removeItem("loginTimeAdmin");
+      location.reload();
+    }
+  });
+
+  const myLoginTime = localStorage.getItem("loginTimeAdmin");
+  if (!myLoginTime) return; // ❌ verhindert Auto-Rejoin nach Kick
 
   const deviceId = localStorage.getItem("deviceId") || Date.now().toString();
   localStorage.setItem("deviceId", deviceId);
@@ -223,7 +236,6 @@ function kickAdmins(){
   if(pw === "2"){
     db.ref("admins").remove();
     db.ref("settings/forceLogout").set(Date.now());
-    location.reload();
   }
 }
 
@@ -232,7 +244,6 @@ function kickMembers(){
   if(pw === "2"){
     db.ref("members").remove();
     db.ref("settings/forceLogoutMembers").set(Date.now());
-    location.reload();
   }
 }
 
@@ -295,5 +306,3 @@ async function load(){
 
 </body>
 </html>
-
-
