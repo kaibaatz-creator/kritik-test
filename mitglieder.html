@@ -126,12 +126,21 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
+// 🔑 Passwort holen
 let currentPassword = "";
 
-// 🔑 Passwort live holen
 db.ref("settings/memberPassword").on("value", snap=>{
   currentPassword = snap.val() || "";
 });
+
+// ⏱️ Session
+const SESSION_TIME = 30 * 60 * 1000;
+const loginTime = localStorage.getItem("loginTimeMembers");
+
+// Auto Login
+if (loginTime && (Date.now() - loginTime < SESSION_TIME)) {
+  start();
+}
 
 // LOGIN
 function login(){
@@ -159,6 +168,14 @@ function start(){
       location.reload();
     }
   });
+
+  // 👥 Registrierung als Mitglied
+  const deviceId = localStorage.getItem("deviceId") || Date.now().toString();
+  localStorage.setItem("deviceId", deviceId);
+
+  const ref = db.ref("members/" + deviceId);
+  ref.set(true);
+  ref.onDisconnect().remove();
 
   document.body.innerHTML = `
   <div class="header">
@@ -211,8 +228,8 @@ function start(){
   });
 
   db.ref("admins").on("value", snap=>{
-    const count = snap.numChildren();
-    document.getElementById("admins").innerText="👔 Vorstand: "+count;
+    document.getElementById("admins").innerText =
+      "👔 Vorstand: " + snap.numChildren();
   });
 
   load();
