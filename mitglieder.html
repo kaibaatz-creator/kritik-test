@@ -1,131 +1,6 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mitglieder Feedback</title>
-
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-
-<style>
-body {
-  margin: 0;
-  background: #000;
-  font-family: Arial;
-  color: white;
-}
-
-.header {
-  text-align: center;
-  padding: 15px;
-  border-bottom: 1px solid #333;
-}
-
-.logo {
-  height: 100px;
-  display: block;
-  margin: 0 auto 10px auto;
-}
-
-/* LOGIN */
-#login {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  background:#1e1e1e;
-  padding:30px;
-  border-radius:15px;
-  box-shadow:0 0 20px rgba(0,0,0,0.5);
-  width:350px;
-  max-width:90%;
-}
-
-input,button{
-  padding:12px;
-  border-radius:10px;
-  border:none;
-  margin:8px;
-}
-
-button{
-  background:#00ff99;
-  font-weight:bold;
-  cursor:pointer;
-}
-
-#error{color:red;}
-
-#counts{
-  text-align:center;
-  margin:10px;
-}
-
-#stats{
-  display:flex;
-  justify-content:space-around;
-  padding:10px;
-}
-
-.stat{
-  background:#1e1e1e;
-  padding:6px 10px;
-  border-radius:10px;
-}
-
-#filters{
-  display:flex;
-  justify-content:center;
-  gap:10px;
-  padding:10px;
-  flex-wrap:wrap;
-}
-
-#filters button{
-  background:#222;
-  color:white;
-}
-
-#filters button.active{
-  background:#00ff99;
-  color:black;
-}
-
-#chat{
-  max-width:700px;
-  margin:auto;
-  padding:10px;
-}
-
-.msg{
-  background:#1e1e1e;
-  margin:10px 0;
-  padding:14px;
-  border-radius:14px;
-}
-
-.msg.Frage{border-left:4px solid #00bfff;}
-.msg.Lob{border-left:4px solid #00ff99;}
-.msg.Vorschlag{border-left:4px solid #ffaa00;}
-</style>
-</head>
-
-<body>
-
-<div id="login">
-  <h2>Mitglieder Login</h2>
-  <input id="pw" type="password" placeholder="Passwort">
-  <button onclick="login()">Login</button>
-  <div id="error"></div>
-</div>
-
 <script>
 const firebaseConfig = {
-  apiKey: "AIzaSyCFjUj-XSN0YnvAilerXPkXbw2iR2ixBv8",
+  apiKey: "DEIN_KEY",
   authDomain: "kritik-system.firebaseapp.com",
   databaseURL: "https://kritik-system-default-rtdb.europe-west1.firebasedatabase.app",
   projectId: "kritik-system"
@@ -134,155 +9,29 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-/* SESSION */
-const SESSION_TIME = 30 * 60 * 1000;
-const loginTime = localStorage.getItem("loginTimeMembers");
-
-// Auto Login
-if (loginTime && (Date.now() - loginTime < SESSION_TIME)) {
-  start();
-}
-
-// LOGIN
-function login(){
-  const pw = document.getElementById("pw").value;
-
-  if(pw === "5"){
-    localStorage.setItem("loginTimeMembers", Date.now());
-    start();
-  } else {
-    document.getElementById("error").innerText="❌ Falsches Passwort";
-  }
-}
-
-// START
+// USER START
 function start(){
-
-  document.getElementById("login").style.display = "none";
 
   const deviceId = localStorage.getItem("deviceId") || Date.now().toString();
   localStorage.setItem("deviceId", deviceId);
 
-  const ref = db.ref("members/" + deviceId);
-  ref.set(true);
-  ref.onDisconnect().remove();
+  const memberRef = db.ref("members/" + deviceId);
+  memberRef.set(true);
+  memberRef.onDisconnect().remove();
 
   document.body.innerHTML = `
-  <div class="header">
-    <img src="logo.png" class="logo">
-    <div>👥 Mitglieder Feedback</div>
-  </div>
-
-  <div id="counts">
-    <div id="members">👥 Mitglieder: 0</div>
-    <div id="admins">👔 Vorstand: 0</div>
-  </div>
-
-  <div id="stats">
-    <div class="stat Kritik">Kritik: 0</div>
-    <div class="stat Lob">Lob: 0</div>
-    <div class="stat Frage">Frage: 0</div>
-    <div class="stat Vorschlag">Vorschlag: 0</div>
-  </div>
-
-  <div id="filters">
-    <button class="active" onclick="setFilter('all', this)">Alle</button>
-    <button onclick="setFilter('Frage', this)">Frage</button>
-    <button onclick="setFilter('Lob', this)">Lob</button>
-    <button onclick="setFilter('Vorschlag', this)">Vorschlag</button>
-  </div>
-
-  <div id="chat"></div>
+    <h2>Mitglied aktiv</h2>
   `;
 
-  // 👥 Mitglieder zählen (ohne Vorstand)
-  db.ref("members").on("value", snap => {
-    db.ref("admins").once("value", adminSnap => {
-
-      const admins = adminSnap.val() || {};
-      let count = 0;
-
-      snap.forEach(child => {
-        if (!admins[child.key]) {
-          count++;
-        }
-      });
-
-      document.getElementById("members").innerText =
-        "👥 Mitglieder: " + count;
-    });
-  });
-
-  // 👔 Vorstand zählen (FIX)
-  db.ref("admins").on("value", snap => {
-    const data = snap.val();
-    const count = data ? Object.keys(data).length : 0;
-
-    document.getElementById("admins").innerText =
-      "👔 Vorstand: " + count;
-  });
-
-  load();
-  setInterval(load,3000);
-}
-
-// FILTER
-let currentFilter="all";
-
-function setFilter(filter,el){
-  currentFilter=filter;
-  document.querySelectorAll("#filters button").forEach(b=>b.classList.remove("active"));
-  el.classList.add("active");
-  load();
-}
-
-// DATA
-const url="https://opensheet.elk.sh/1d2Xf-u1DOMsqlXmwMi05VDD9O6sR4OsmBnQnVqjqGzg/Sheet1";
-
-async function load(){
-  const res=await fetch(url);
-  const data=await res.json();
-
-  let stats={Kritik:0,Lob:0,Frage:0,Vorschlag:0};
-
-  let all=data.map(r=>{
-    let type="",time="";
-    for(let k in r){
-      if(k.toLowerCase().includes("art")) type=r[k];
-      if(k.toLowerCase().includes("zeit")) time=r[k];
+  // 🔥 FORCE LOGOUT FÜR MITGLIEDER
+  db.ref("settings/forceLogoutMembers").on("value", snap => {
+    if (snap.exists()) {
+      alert("Du wurdest ausgeloggt!");
+      localStorage.clear();
+      location.reload();
     }
-    if(stats[type]!=undefined) stats[type]++;
-    return {...r,type,time};
-  });
-
-  let display = all.filter(r=>r.type!=="Kritik");
-
-  if(currentFilter!=="all"){
-    display = display.filter(r=>r.type===currentFilter);
-  }
-
-  document.querySelector(".stat.Kritik").innerText="Kritik: "+stats.Kritik;
-  document.querySelector(".stat.Lob").innerText="Lob: "+stats.Lob;
-  document.querySelector(".stat.Frage").innerText="Frage: "+stats.Frage;
-  document.querySelector(".stat.Vorschlag").innerText="Vorschlag: "+stats.Vorschlag;
-
-  const chat=document.getElementById("chat");
-  chat.innerHTML="";
-
-  display.slice(-30).reverse().forEach(r=>{
-    const div=document.createElement("div");
-    div.className="msg "+r.type;
-
-    div.innerHTML=`
-      <b>${r.type}</b><br>
-      ${r["Dein Feedback"]}<br>
-      <span style="font-size:12px;color:#888">${r.time||"-"}</span>
-    `;
-
-    chat.appendChild(div);
   });
 }
-</script>
 
-</body>
-</html>
+start();
+</script>
