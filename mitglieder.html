@@ -28,6 +28,7 @@ body {
   margin: 0 auto 10px auto;
 }
 
+/* LOGIN */
 #login {
   position: absolute;
   top: 50%;
@@ -39,6 +40,9 @@ body {
   background:#1e1e1e;
   padding:30px;
   border-radius:15px;
+  box-shadow:0 0 20px rgba(0,0,0,0.5);
+  width:350px;
+  max-width:90%;
 }
 
 input,button{
@@ -51,6 +55,7 @@ input,button{
 button{
   background:#00ff99;
   font-weight:bold;
+  cursor:pointer;
 }
 
 #error{color:red;}
@@ -129,15 +134,20 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
+/* SESSION */
 const SESSION_TIME = 30 * 60 * 1000;
 const loginTime = localStorage.getItem("loginTimeMembers");
 
+// Auto Login
 if (loginTime && (Date.now() - loginTime < SESSION_TIME)) {
   start();
 }
 
+// LOGIN
 function login(){
-  if(document.getElementById("pw").value==="5"){
+  const pw = document.getElementById("pw").value;
+
+  if(pw === "5"){
     localStorage.setItem("loginTimeMembers", Date.now());
     start();
   } else {
@@ -145,6 +155,7 @@ function login(){
   }
 }
 
+// START
 function start(){
 
   document.getElementById("login").style.display = "none";
@@ -184,29 +195,38 @@ function start(){
   <div id="chat"></div>
   `;
 
+  // 👥 Mitglieder zählen (ohne Vorstand)
   db.ref("members").on("value", snap => {
     db.ref("admins").once("value", adminSnap => {
+
       const admins = adminSnap.val() || {};
       let count = 0;
 
       snap.forEach(child => {
-        if (!admins[child.key]) count++;
+        if (!admins[child.key]) {
+          count++;
+        }
       });
 
-      document.getElementById("members").innerText = "👥 Mitglieder: " + count;
+      document.getElementById("members").innerText =
+        "👥 Mitglieder: " + count;
     });
   });
 
+  // 👔 Vorstand zählen (FIX)
   db.ref("admins").on("value", snap => {
     const data = snap.val();
     const count = data ? Object.keys(data).length : 0;
-    document.getElementById("admins").innerText = "👔 Vorstand: " + count;
+
+    document.getElementById("admins").innerText =
+      "👔 Vorstand: " + count;
   });
 
   load();
   setInterval(load,3000);
 }
 
+// FILTER
 let currentFilter="all";
 
 function setFilter(filter,el){
@@ -216,6 +236,7 @@ function setFilter(filter,el){
   load();
 }
 
+// DATA
 const url="https://opensheet.elk.sh/1d2Xf-u1DOMsqlXmwMi05VDD9O6sR4OsmBnQnVqjqGzg/Sheet1";
 
 async function load(){
