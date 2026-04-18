@@ -1,7 +1,7 @@
 {
   "name": "Kritik Test",
   "short_name": "Kritik",
- "start_url": "./index.html"
+ "start_url": "https://kaibaatz-creator.github.io/kritik-test/"
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#000000",
