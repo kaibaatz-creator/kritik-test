@@ -1,7 +1,7 @@
 {
   "name": "Kritik Test",
   "short_name": "Kritik",
-  "start_url": "kritik-test/test.html",
+  "start_url": "./test.html",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#000000",
