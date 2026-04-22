@@ -40,6 +40,8 @@ function openEvent(name,type){
 
 // Event erstellen
 function createEvent(){
+  alert("Test");
+}
 
   const pw = prompt("Passwort:");
   if(pw !== "12"){
@@ -91,6 +93,79 @@ function loadEvents(){
 loadEvents();
 
 </script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyCFjuJ-XSN0YnvAilerXPkXbw2iR2ixBv8",
+  authDomain: "kritik-system.firebaseapp.com",
+  databaseURL: "https://kritik-system-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "kritik-system"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// 🔥 EVENT ERSTELLEN
+function createEvent(){
+
+  const pw = prompt("Passwort:");
+  if(pw !== "12"){
+    alert("Falsch");
+    return;
+  }
+
+  const name = prompt("Name der Veranstaltung:");
+  if(!name) return;
+
+  const key = name.toLowerCase().replace(/\s+/g,"_");
+
+  const type = prompt("1 = Liste\n2 = Info");
+
+  if(type !== "1" && type !== "2"){
+    alert("Abbruch");
+    return;
+  }
+
+  db.ref("test/events/"+key).set({
+    name,
+    type
+  });
+
+  alert("Erstellt!");
+}
+
+// 🔥 EVENTS LADEN (JETZT WICHTIG!)
+function loadEvents(){
+  const container = document.getElementById("events");
+
+  db.ref("test/events").on("value", snap=>{
+    container.innerHTML="";
+
+    snap.forEach(child=>{
+      const data = child.val();
+      const key = child.key;
+
+      const div = document.createElement("div");
+      div.className="card";
+
+      div.innerHTML = data.name + " (" + (data.type==="1"?"Liste":"Info") + ")";
+
+      div.onclick = ()=>{
+        if(data.type==="1"){
+          window.location.href = "liste.html?event=" + key;
+        }else{
+          window.location.href = "info.html?event=" + key;
+        }
+      };
+
+      container.appendChild(div);
+    });
+  });
+}
+
+loadEvents();
+</script>
 </body>
 </html>
