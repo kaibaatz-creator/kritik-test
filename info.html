@@ -30,23 +30,19 @@ button{
   padding:10px 15px;
   border:none;
   border-radius:10px;
-  background:#00bfff;
-  font-weight:bold;
   cursor:pointer;
+  font-weight:bold;
 }
 
-table{
-  width:95%;
-  margin:20px auto;
-  border-collapse:collapse;
-}
+.blue{background:#00bfff;color:black;}
+.red{background:red;color:white;}
 
-th,td{
-  border:1px solid #333;
+.helperCard{
+  background:#111;
+  margin:10px;
   padding:10px;
+  border-radius:10px;
 }
-
-th{background:#111;}
 </style>
 </head>
 
@@ -67,8 +63,10 @@ th{background:#111;}
   <option value="ja">Helfer werden benötigt</option>
 </select>
 
+<input id="max" placeholder="Max Helfer (z.B. 5)">
+
 <br>
-<button onclick="save()">Speichern</button>
+<button class="blue" onclick="save()">Speichern</button>
 
 </div>
 
@@ -76,24 +74,15 @@ th{background:#111;}
 
 <div id="helferBox" class="box" style="display:none;">
 
-<h3>🙋 Helfer Liste</h3>
+<h3>🙋 Helfer</h3>
 
 <input id="hName" placeholder="Wer">
 <input id="hWann" placeholder="Wann">
 <input id="hWas" placeholder="Wo/Was">
 
-<button onclick="addHelper()">Eintragen</button>
+<button class="blue" onclick="addHelper()">Eintragen</button>
 
-<table>
-  <thead>
-    <tr>
-      <th>Wer</th>
-      <th>Wann</th>
-      <th>Wo/Was</th>
-    </tr>
-  </thead>
-  <tbody id="helferListe"></tbody>
-</table>
+<div id="helferListe"></div>
 
 </div>
 
@@ -108,19 +97,26 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-const params = new URLSearchParams(window.location.search);
-const event = params.get("event");
+const event = new URLSearchParams(window.location.search).get("event");
 
 document.getElementById("title").innerText = event;
 
+// 🔒 Passwort
+const ADMIN_PW = "12";
+
 // 🔥 SPEICHERN
 function save(){
+
+  const pw = prompt("Vorstand Passwort:");
+  if(pw !== ADMIN_PW) return alert("Falsch");
+
   const data = {
-    ort: document.getElementById("ort").value,
-    datum: document.getElementById("datum").value,
-    zeit: document.getElementById("zeit").value,
-    beschreibung: document.getElementById("beschreibung").value,
-    helfer: document.getElementById("helfer").value
+    ort: ort.value,
+    datum: datum.value,
+    zeit: zeit.value,
+    beschreibung: beschreibung.value,
+    helfer: helfer.value,
+    max: max.value || 0
   };
 
   db.ref("test/info/"+event).set(data);
@@ -131,51 +127,73 @@ db.ref("test/info/"+event).on("value", snap=>{
   const d = snap.val();
   if(!d) return;
 
-  document.getElementById("anzeige").innerHTML = `
-    <b>📍 Ort:</b> ${d.ort || "-"}<br>
-    <b>📅 Datum:</b> ${d.datum || "-"}<br>
-    <b>⏰ Uhrzeit:</b> ${d.zeit || "-"}<br><br>
+  anzeige.innerHTML = `
+    <b>📍 ${d.ort || "-"}</b><br>
+    📅 ${d.datum || "-"}<br>
+    ⏰ ${d.zeit || "-"}<br><br>
     ${d.beschreibung || ""}
   `;
 
-  if(d.helfer === "ja"){
-    document.getElementById("helferBox").style.display="block";
-  }else{
-    document.getElementById("helferBox").style.display="none";
-  }
+  helferBox.style.display = d.helfer==="ja" ? "block":"none";
+
+  window.maxHelper = Number(d.max || 0);
 });
 
-// 🔥 HELFER HINZUFÜGEN
+// 🔥 HELFER ADD
 function addHelper(){
-  const name = document.getElementById("hName").value;
-  const wann = document.getElementById("hWann").value;
-  const was = document.getElementById("hWas").value;
 
-  if(!name || !wann || !was) return;
+  db.ref("test/helpers/"+event).once("value", snap=>{
+    const count = snap.numChildren();
 
-  db.ref("test/helpers/"+event).push({
-    name, wann, was
+    if(window.maxHelper && count >= window.maxHelper){
+      alert("Maximale Helfer erreicht!");
+      return;
+    }
+
+    const name = hName.value;
+    const wann = hWann.value;
+    const was = hWas.value;
+
+    if(!name || !wann || !was) return;
+
+    db.ref("test/helpers/"+event).push({name,wann,was});
+
+    hName.value="";
+    hWann.value="";
+    hWas.value="";
   });
 }
 
 // 🔥 HELFER LADEN
 db.ref("test/helpers/"+event).on("value", snap=>{
-  const list = document.getElementById("helferListe");
-  list.innerHTML="";
+  helferListe.innerHTML="";
 
   snap.forEach(child=>{
     const d = child.val();
+    const id = child.key;
 
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${d.name}</td>
-      <td>${d.wann}</td>
-      <td>${d.was}</td>
+    const div = document.createElement("div");
+    div.className="helperCard";
+
+    div.innerHTML = `
+      <b>${d.name}</b><br>
+      ${d.wann}<br>
+      ${d.was}<br><br>
+      <button class="red" onclick="removeHelper('${id}')">Löschen</button>
     `;
 
-    list.appendChild(tr);
+    helferListe.appendChild(div);
   });
 });
+
+// 🔥 LÖSCHEN
+function removeHelper(id){
+
+  const pw = prompt("Vorstand Passwort:");
+  if(pw !== ADMIN_PW) return alert("Falsch");
+
+  db.ref("test/helpers/"+event+"/"+id).remove();
+}
 </script>
 
 </body>
