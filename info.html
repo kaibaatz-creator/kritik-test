@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+<style>
+body{background:#000;color:white;font-family:Arial;text-align:center;}
+textarea{width:90%;height:150px;margin:10px;border-radius:10px;}
+button{padding:10px;border:none;border-radius:10px;background:#00bfff;}
+.box{background:#1e1e1e;margin:20px;padding:15px;border-radius:15px;}
+</style>
+</head>
+
+<body>
+
+<h2 id="title"></h2>
+
+<textarea id="info" placeholder="Infos zur Veranstaltung..."></textarea><br>
+
+<button onclick="save()">Speichern</button>
+
+<div class="box" id="display"></div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyCFjuJ-XSN0YnvAilerXPkXbw2iR2ixBv8",
+  authDomain: "kritik-system.firebaseapp.com",
+  databaseURL: "https://kritik-system-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "kritik-system"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+const params = new URLSearchParams(window.location.search);
+const event = params.get("event");
+
+document.getElementById("title").innerText = event;
+
+function save(){
+  const text = document.getElementById("info").value;
+
+  db.ref("test/info/"+event).set({text});
+}
+
+db.ref("test/info/"+event).on("value", snap=>{
+  const data = snap.val();
+  if(!data) return;
+
+  document.getElementById("display").innerText = data.text;
+});
+</script>
+
+</body>
+</html>
