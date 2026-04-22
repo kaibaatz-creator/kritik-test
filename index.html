@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Start</title>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+<style>
+body{background:#000;color:white;font-family:Arial;text-align:center;margin:0;}
+h2{margin-top:20px;}
+
+.box{max-width:600px;margin:auto;padding:20px;}
+
+input,select{
+  padding:10px;
+  margin:5px;
+  border-radius:10px;
+  border:none;
+}
+
+button{
+  padding:10px 15px;
+  border:none;
+  border-radius:10px;
+  cursor:pointer;
+  font-weight:bold;
+  background:#00ff99;
+  color:black;
+}
+
+.item{
+  background:#1e1e1e;
+  margin:10px 0;
+  padding:12px;
+  border-radius:12px;
+  text-align:left;
+}
+
+.warning{color:red;font-weight:bold;}
+.small{font-size:12px;opacity:0.7;}
+</style>
+</head>
+
+<body>
+
+<h2>🎉 Mitbringlisten</h2>
+
+<div class="box">
+
+<select id="eventSelect"></select><br>
+
+<input id="name" placeholder="Dein Name"><br>
+<input id="item" placeholder="Was bringst du mit?"><br>
+
+<button onclick="addItem()">Eintragen</button>
+
+<br><br>
+
+<button onclick="createEvent()">➕ Neue Liste erstellen</button>
+
+<div id="list"></div>
+
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyCFjuJ-XSN0YnvAilerXPkXbw2iR2ixBv8",
+  authDomain: "kritik-system.firebaseapp.com",
+  databaseURL: "https://kritik-system-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "kritik-system"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+let currentEvent = "";
+let all = [];
+
+// 🔥 EVENTS LADEN
+function loadEvents(){
+  db.ref("test/lists").on("value", snap=>{
+    const select = document.getElementById("eventSelect");
+    select.innerHTML="";
+
+    snap.forEach(child=>{
+      const key = child.key;
+
+      const opt = document.createElement("option");
+      opt.value = key;
+      opt.text = key.replace(/_/g," ");
+
+      select.appendChild(opt);
+    });
+
+    // erstes Event automatisch wählen
+    if(select.options.length > 0){
+      currentEvent = select.value;
+      loadList();
+    }
+  });
+}
+
+// 🔄 Wechsel Event
+document.getElementById("eventSelect").onchange = function(){
+  currentEvent = this.value;
+  loadList();
+};
+
+// ➕ Eintragen
+function addItem(){
+  const name = document.getElementById("name").value.trim();
+  const item = document.getElementById("item").value.trim();
+
+  if(!name || !item){
+    alert("Bitte ausfüllen");
+    return;
+  }
+
+  db.ref("test/lists/"+currentEvent).push({
+    name,
+    item
+  });
+
+  document.getElementById("item").value="";
+}
+
+// 🔥 Liste laden
+function loadList(){
+  db.ref("test/lists/"+currentEvent).on("value", snap=>{
+    const list = document.getElementById("list");
+    list.innerHTML="";
+    all=[];
+
+    snap.forEach(child=>{
+      const data = child.val();
+      const id = child.key;
+
+      if(!data.item) return; // skip meta
+
+      all.push({...data,id});
+    });
+
+    all.forEach(data=>{
+      const count = all.filter(e => 
+        e.item.toLowerCase() === data.item.toLowerCase()
+      ).length;
+
+      const warn = count>1 
+        ? "<span class='warning'>⚠️ mehrfach</span>" 
+        : "";
+
+      const div = document.createElement("div");
+      div.className="item";
+
+      div.innerHTML = `
+        <b>${data.item}</b> ${warn}<br>
+        <span class="small">von ${data.name}</span>
+      `;
+
+      list.appendChild(div);
+    });
+  });
+}
+
+// 🔐 Neue Liste erstellen (Passwort 12)
+function createEvent(){
+
+  const pw = prompt("Vorstand Passwort:");
+
+  if(pw !== "12"){
+    alert("Falsches Passwort");
+    return;
+  }
+
+  const name = prompt("Name der Liste:");
+  if(!name) return;
+
+  const key = name.toLowerCase().replace(/\s+/g,"_");
+
+  db.ref("test/lists/"+key).set({
+    createdAt: Date.now()
+  });
+
+  alert("Liste erstellt!");
+}
+
+// Start
+loadEvents();
+</script>
+
+</body>
+</html>
