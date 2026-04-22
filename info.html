@@ -8,83 +8,82 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
 <style>
-body{background:#000;color:white;font-family:Arial;text-align:center;}
-
-.box{
-  background:#1e1e1e;
-  margin:20px auto;
+body{
+  background:#111;
+  color:white;
+  font-family:Arial;
   padding:20px;
-  border-radius:15px;
-  max-width:600px;
 }
 
-input,textarea,select{
-  width:90%;
+h2{
+  text-align:center;
+}
+
+.section{
+  margin:30px 0;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:10px;
+}
+
+th,td{
+  border:1px solid #444;
   padding:10px;
-  margin:8px;
-  border-radius:10px;
+  text-align:center;
+}
+
+th{
+  background:#222;
+}
+
+input{
+  padding:8px;
+  margin:5px;
+  border-radius:8px;
   border:none;
 }
 
 button{
-  padding:10px 15px;
+  padding:8px 12px;
   border:none;
-  border-radius:10px;
+  border-radius:8px;
   cursor:pointer;
-  font-weight:bold;
+  margin:5px;
 }
 
-.blue{background:#00bfff;color:black;}
+.green{background:#00ff99;color:black;}
 .red{background:red;color:white;}
 
-.helperCard{
-  background:#111;
-  margin:10px;
-  padding:10px;
-  border-radius:10px;
+.topbar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
 }
 </style>
 </head>
 
 <body>
 
-<h2 id="title"></h2>
-
-<div class="box">
-
-<input id="ort" placeholder="📍 Ort">
-<input id="datum" placeholder="📅 Datum">
-<input id="zeit" placeholder="⏰ Uhrzeit">
-
-<textarea id="beschreibung" placeholder="📝 Beschreibung"></textarea>
-
-<select id="helfer">
-  <option value="nein">Keine Helfer nötig</option>
-  <option value="ja">Helfer werden benötigt</option>
-</select>
-
-<input id="max" placeholder="Max Helfer (z.B. 5)">
-
-<br>
-<button class="blue" onclick="save()">Speichern</button>
-
+<div class="topbar">
+  <button onclick="goBack()">← Zurück</button>
+  <h2 id="title"></h2>
+  <div></div>
 </div>
 
-<div id="anzeige" class="box"></div>
+<hr>
 
-<div id="helferBox" class="box" style="display:none;">
-
-<h3>🙋 Helfer</h3>
-
-<input id="hName" placeholder="Wer">
-<input id="hWann" placeholder="Wann">
-<input id="hWas" placeholder="Wo/Was">
-
-<button class="blue" onclick="addHelper()">Eintragen</button>
-
-<div id="helferListe"></div>
-
+<!-- 🔧 Bereich erstellen -->
+<div>
+  <input id="areaName" placeholder="Bereich (z.B. Schminken)">
+  <input id="zeit1" placeholder="Zeit 1 (z.B. 9-12)">
+  <input id="zeit2" placeholder="Zeit 2 (z.B. 12-15)">
+  <button class="green" onclick="createArea()">Bereich hinzufügen</button>
 </div>
+
+<div id="content"></div>
 
 <script>
 const firebaseConfig = {
@@ -98,101 +97,112 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
 const event = new URLSearchParams(window.location.search).get("event");
-
 document.getElementById("title").innerText = event;
 
-// 🔒 Passwort
-const ADMIN_PW = "12";
-
-// 🔥 SPEICHERN
-function save(){
-
-  const pw = prompt("Vorstand Passwort:");
-  if(pw !== ADMIN_PW) return alert("Falsch");
-
-  const data = {
-    ort: ort.value,
-    datum: datum.value,
-    zeit: zeit.value,
-    beschreibung: beschreibung.value,
-    helfer: helfer.value,
-    max: max.value || 0
-  };
-
-  db.ref("test/info/"+event).set(data);
+// 🔙 zurück
+function goBack(){
+  window.location.href = "index.html";
 }
 
-// 🔥 LADEN
-db.ref("test/info/"+event).on("value", snap=>{
-  const d = snap.val();
-  if(!d) return;
+// 🔥 Bereich erstellen
+function createArea(){
 
-  anzeige.innerHTML = `
-    <b>📍 ${d.ort || "-"}</b><br>
-    📅 ${d.datum || "-"}<br>
-    ⏰ ${d.zeit || "-"}<br><br>
-    ${d.beschreibung || ""}
-  `;
+  const name = areaName.value;
+  const z1 = zeit1.value;
+  const z2 = zeit2.value;
 
-  helferBox.style.display = d.helfer==="ja" ? "block":"none";
+  if(!name || !z1 || !z2) return alert("Bitte alles ausfüllen");
 
-  window.maxHelper = Number(d.max || 0);
-});
+  const key = name.toLowerCase().replace(/\s+/g,"_");
 
-// 🔥 HELFER ADD
-function addHelper(){
-
-  db.ref("test/helpers/"+event).once("value", snap=>{
-    const count = snap.numChildren();
-
-    if(window.maxHelper && count >= window.maxHelper){
-      alert("Maximale Helfer erreicht!");
-      return;
-    }
-
-    const name = hName.value;
-    const wann = hWann.value;
-    const was = hWas.value;
-
-    if(!name || !wann || !was) return;
-
-    db.ref("test/helpers/"+event).push({name,wann,was});
-
-    hName.value="";
-    hWann.value="";
-    hWas.value="";
+  db.ref("test/planung/"+event+"/"+key).set({
+    name, z1, z2
   });
+
+  areaName.value="";
+  zeit1.value="";
+  zeit2.value="";
 }
 
-// 🔥 HELFER LADEN
-db.ref("test/helpers/"+event).on("value", snap=>{
-  helferListe.innerHTML="";
+// 🔥 Bereiche laden
+db.ref("test/planung/"+event).on("value", snap=>{
+  const container = document.getElementById("content");
+  container.innerHTML="";
 
   snap.forEach(child=>{
     const d = child.val();
-    const id = child.key;
+    const key = child.key;
 
     const div = document.createElement("div");
-    div.className="helperCard";
+    div.className="section";
 
     div.innerHTML = `
-      <b>${d.name}</b><br>
-      ${d.wann}<br>
-      ${d.was}<br><br>
-      <button class="red" onclick="removeHelper('${id}')">Löschen</button>
+      <h3>${d.name}</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>${d.z1}</th>
+            <th>${d.z2}</th>
+          </tr>
+        </thead>
+        <tbody id="table_${key}"></tbody>
+      </table>
+
+      <input id="name_${key}" placeholder="Name">
+      <button onclick="add('${key}','1')">+ ${d.z1}</button>
+      <button onclick="add('${key}','2')">+ ${d.z2}</button>
     `;
 
-    helferListe.appendChild(div);
+    container.appendChild(div);
+
+    loadTable(key);
   });
 });
 
-// 🔥 LÖSCHEN
-function removeHelper(id){
+// 🔥 Eintragen
+function add(area,slot){
 
-  const pw = prompt("Vorstand Passwort:");
-  if(pw !== ADMIN_PW) return alert("Falsch");
+  const name = document.getElementById("name_"+area).value;
+  if(!name) return;
 
-  db.ref("test/helpers/"+event+"/"+id).remove();
+  db.ref("test/planung/"+event+"/"+area+"/list").push({
+    name, slot
+  });
+
+  document.getElementById("name_"+area).value="";
+}
+
+// 🔥 Tabelle laden
+function loadTable(area){
+
+  db.ref("test/planung/"+event+"/"+area+"/list").on("value", snap=>{
+
+    const table = document.getElementById("table_"+area);
+    if(!table) return;
+
+    table.innerHTML="";
+
+    let col1 = [];
+    let col2 = [];
+
+    snap.forEach(child=>{
+      const d = child.val();
+      if(d.slot==="1") col1.push(d.name);
+      if(d.slot==="2") col2.push(d.name);
+    });
+
+    const max = Math.max(col1.length,col2.length);
+
+    for(let i=0;i<max;i++){
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${col1[i]||""}</td>
+        <td>${col2[i]||""}</td>
+      `;
+      table.appendChild(tr);
+    }
+  });
 }
 </script>
 
