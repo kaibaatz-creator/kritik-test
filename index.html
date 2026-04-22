@@ -3,16 +3,40 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Start</title>
+<title>Veranstaltungen</title>
 
 <style>
-body{background:#000;color:white;font-family:Arial;text-align:center;}
+body{
+  background:#000;
+  color:white;
+  font-family:Arial;
+  text-align:center;
+}
+
+h2{
+  margin-top:20px;
+}
+
 .card{
   background:#1e1e1e;
-  margin:15px;
+  margin:15px auto;
   padding:20px;
   border-radius:15px;
   cursor:pointer;
+  max-width:400px;
+  transition:0.2s;
+}
+
+.card:hover{
+  transform:scale(1.03);
+}
+
+button{
+  padding:10px 15px;
+  border:none;
+  border-radius:10px;
+  cursor:pointer;
+  font-weight:bold;
 }
 </style>
 </head>
@@ -27,72 +51,7 @@ body{background:#000;color:white;font-family:Arial;text-align:center;}
 
 <button onclick="createEvent()">➕ Neue Veranstaltung</button>
 
-<script>
-
-// Event öffnen
-function openEvent(name,type){
-  if(type==="liste"){
-    window.location.href = "liste.html?event=" + name;
-  }else{
-    window.location.href = "info.html?event=" + name;
-  }
-}
-
-// Event erstellen
-function createEvent(){
-  alert("Test");
-}
-
-  const pw = prompt("Passwort:");
-  if(pw !== "12"){
-    alert("Falsch");
-    return;
-  }
-
-  const name = prompt("Name der Veranstaltung:");
-  if(!name) return;
-
-  const key = name.toLowerCase().replace(/\s+/g,"_");
-
-  const type = prompt("1 = Liste\n2 = Info");
-
-  if(type === "1"){
-    localStorage.setItem("event_"+key,"liste");
-    openEvent(key,"liste");
-  }
-  else if(type === "2"){
-    localStorage.setItem("event_"+key,"info");
-    openEvent(key,"info");
-  }
-}
-
-// Events anzeigen
-function loadEvents(){
-  const container = document.getElementById("events");
-  container.innerHTML="";
-
-  for(let i=0;i<localStorage.length;i++){
-    const key = localStorage.key(i);
-
-    if(key.startsWith("event_")){
-      const name = key.replace("event_","");
-      const type = localStorage.getItem(key);
-
-      const div = document.createElement("div");
-      div.className="card";
-
-      div.innerHTML = name + " (" + type + ")";
-
-      div.onclick = ()=>openEvent(name,type);
-
-      container.appendChild(div);
-    }
-  }
-}
-
-loadEvents();
-
-</script>
+<!-- 🔥 FIREBASE -->
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
@@ -112,7 +71,7 @@ function createEvent(){
 
   const pw = prompt("Passwort:");
   if(pw !== "12"){
-    alert("Falsch");
+    alert("Falsches Passwort");
     return;
   }
 
@@ -129,14 +88,14 @@ function createEvent(){
   }
 
   db.ref("test/events/"+key).set({
-    name,
-    type
+    name: name,
+    type: type
   });
 
-  alert("Erstellt!");
+  alert("Event erstellt!");
 }
 
-// 🔥 EVENTS LADEN (JETZT WICHTIG!)
+// 🔥 EVENTS LADEN
 function loadEvents(){
   const container = document.getElementById("events");
 
@@ -150,10 +109,15 @@ function loadEvents(){
       const div = document.createElement("div");
       div.className="card";
 
-      div.innerHTML = data.name + " (" + (data.type==="1"?"Liste":"Info") + ")";
+      const typeText = data.type === "1" ? "📝 Liste" : "📄 Info";
 
-      div.onclick = ()=>{
-        if(data.type==="1"){
+      div.innerHTML = `
+        <b>${data.name}</b><br>
+        <small>${typeText}</small>
+      `;
+
+      div.onclick = function(){
+        if(data.type === "1"){
           window.location.href = "liste.html?event=" + key;
         }else{
           window.location.href = "info.html?event=" + key;
@@ -165,7 +129,9 @@ function loadEvents(){
   });
 }
 
+// Start
 loadEvents();
 </script>
+
 </body>
 </html>
