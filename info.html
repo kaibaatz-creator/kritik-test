@@ -9,9 +9,44 @@
 
 <style>
 body{background:#000;color:white;font-family:Arial;text-align:center;}
-textarea{width:90%;height:150px;margin:10px;border-radius:10px;}
-button{padding:10px;border:none;border-radius:10px;background:#00bfff;}
-.box{background:#1e1e1e;margin:20px;padding:15px;border-radius:15px;}
+
+.box{
+  background:#1e1e1e;
+  margin:20px auto;
+  padding:20px;
+  border-radius:15px;
+  max-width:600px;
+}
+
+input,textarea,select{
+  width:90%;
+  padding:10px;
+  margin:8px;
+  border-radius:10px;
+  border:none;
+}
+
+button{
+  padding:10px 15px;
+  border:none;
+  border-radius:10px;
+  background:#00bfff;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+table{
+  width:95%;
+  margin:20px auto;
+  border-collapse:collapse;
+}
+
+th,td{
+  border:1px solid #333;
+  padding:10px;
+}
+
+th{background:#111;}
 </style>
 </head>
 
@@ -19,11 +54,48 @@ button{padding:10px;border:none;border-radius:10px;background:#00bfff;}
 
 <h2 id="title"></h2>
 
-<textarea id="info" placeholder="Infos zur Veranstaltung..."></textarea><br>
+<div class="box">
 
+<input id="ort" placeholder="📍 Ort">
+<input id="datum" placeholder="📅 Datum">
+<input id="zeit" placeholder="⏰ Uhrzeit">
+
+<textarea id="beschreibung" placeholder="📝 Beschreibung"></textarea>
+
+<select id="helfer">
+  <option value="nein">Keine Helfer nötig</option>
+  <option value="ja">Helfer werden benötigt</option>
+</select>
+
+<br>
 <button onclick="save()">Speichern</button>
 
-<div class="box" id="display"></div>
+</div>
+
+<div id="anzeige" class="box"></div>
+
+<div id="helferBox" class="box" style="display:none;">
+
+<h3>🙋 Helfer Liste</h3>
+
+<input id="hName" placeholder="Wer">
+<input id="hWann" placeholder="Wann">
+<input id="hWas" placeholder="Wo/Was">
+
+<button onclick="addHelper()">Eintragen</button>
+
+<table>
+  <thead>
+    <tr>
+      <th>Wer</th>
+      <th>Wann</th>
+      <th>Wo/Was</th>
+    </tr>
+  </thead>
+  <tbody id="helferListe"></tbody>
+</table>
+
+</div>
 
 <script>
 const firebaseConfig = {
@@ -41,17 +113,68 @@ const event = params.get("event");
 
 document.getElementById("title").innerText = event;
 
+// 🔥 SPEICHERN
 function save(){
-  const text = document.getElementById("info").value;
+  const data = {
+    ort: document.getElementById("ort").value,
+    datum: document.getElementById("datum").value,
+    zeit: document.getElementById("zeit").value,
+    beschreibung: document.getElementById("beschreibung").value,
+    helfer: document.getElementById("helfer").value
+  };
 
-  db.ref("test/info/"+event).set({text});
+  db.ref("test/info/"+event).set(data);
 }
 
+// 🔥 LADEN
 db.ref("test/info/"+event).on("value", snap=>{
-  const data = snap.val();
-  if(!data) return;
+  const d = snap.val();
+  if(!d) return;
 
-  document.getElementById("display").innerText = data.text;
+  document.getElementById("anzeige").innerHTML = `
+    <b>📍 Ort:</b> ${d.ort || "-"}<br>
+    <b>📅 Datum:</b> ${d.datum || "-"}<br>
+    <b>⏰ Uhrzeit:</b> ${d.zeit || "-"}<br><br>
+    ${d.beschreibung || ""}
+  `;
+
+  if(d.helfer === "ja"){
+    document.getElementById("helferBox").style.display="block";
+  }else{
+    document.getElementById("helferBox").style.display="none";
+  }
+});
+
+// 🔥 HELFER HINZUFÜGEN
+function addHelper(){
+  const name = document.getElementById("hName").value;
+  const wann = document.getElementById("hWann").value;
+  const was = document.getElementById("hWas").value;
+
+  if(!name || !wann || !was) return;
+
+  db.ref("test/helpers/"+event).push({
+    name, wann, was
+  });
+}
+
+// 🔥 HELFER LADEN
+db.ref("test/helpers/"+event).on("value", snap=>{
+  const list = document.getElementById("helferListe");
+  list.innerHTML="";
+
+  snap.forEach(child=>{
+    const d = child.val();
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${d.name}</td>
+      <td>${d.wann}</td>
+      <td>${d.was}</td>
+    `;
+
+    list.appendChild(tr);
+  });
 });
 </script>
 
