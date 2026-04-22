@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+<style>
+body{background:#000;color:white;font-family:Arial;text-align:center;margin:0;}
+h2{margin-top:20px;}
+
+.box{max-width:600px;margin:auto;padding:20px;}
+
+input,select{
+  padding:10px;
+  margin:5px;
+  border-radius:10px;
+  border:none;
+}
+
+button{
+  padding:10px 15px;
+  border:none;
+  border-radius:10px;
+  cursor:pointer;
+  font-weight:bold;
+}
+
+.green{background:#00ff99;color:black;}
+.red{background:red;color:white;}
+
+.item{
+  background:#1e1e1e;
+  margin:10px 0;
+  padding:12px;
+  border-radius:12px;
+  text-align:left;
+}
+
+.small{font-size:12px;opacity:0.7;}
+
+.warning{
+  color:red;
+  font-weight:bold;
+}
+</style>
+</head>
+
+<body>
+
+<h2>🎉 Mitbringliste</h2>
+
+<div class="box">
+
+<input id="name" placeholder="Dein Name"><br>
+
+<select id="category">
+  <option>Getränke</option>
+  <option>Essen</option>
+  <option>Technik</option>
+  <option>Sonstiges</option>
+</select><br>
+
+<input id="item" placeholder="Was bringst du mit?"><br>
+
+<button class="green" onclick="addItem()">Eintragen</button>
+
+<div id="list"></div>
+
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyCFjuJ-XSN0YnvAilerXPkXbw2iR2ixBv8",
+  authDomain: "kritik-system.firebaseapp.com",
+  databaseURL: "https://kritik-system-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "kritik-system"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+let all=[];
+
+// ➕ EINTRAGEN (keine Blockierung mehr!)
+function addItem(){
+  const name = document.getElementById("name").value.trim();
+  const item = document.getElementById("item").value.trim();
+  const category = document.getElementById("category").value;
+
+  if(!name || !item){
+    alert("Bitte alles ausfüllen");
+    return;
+  }
+
+  db.ref("test/liste").push({
+    name,
+    item,
+    category
+  });
+
+  document.getElementById("item").value="";
+}
+
+// 🔥 LIVE LADEN
+db.ref("test/liste").on("value", snap=>{
+  const list = document.getElementById("list");
+  list.innerHTML="";
+  all=[];
+
+  snap.forEach(child=>{
+    const data = child.val();
+    const id = child.key;
+
+    all.push({ ...data, id });
+  });
+
+  // Anzeige bauen
+  all.forEach(data=>{
+    
+    // 🔥 zählen wie oft vorhanden
+    const count = all.filter(e =>
+      e.item.toLowerCase() === data.item.toLowerCase()
+    ).length;
+
+    const warning = count > 1 
+      ? "<span class='warning'>⚠️ mehrfach</span>" 
+      : "";
+
+    const div = document.createElement("div");
+    div.className="item";
+
+    div.innerHTML = `
+      <b>${data.item}</b> (${data.category}) ${warning}<br>
+      <span class="small">von ${data.name}</span><br>
+      <button class="red" onclick="removeItem('${data.id}')">Löschen</button>
+    `;
+
+    list.appendChild(div);
+  });
+});
+
+// 🧹 LÖSCHEN
+function removeItem(id){
+  if(!confirm("Wirklich löschen?")) return;
+  db.ref("test/liste/"+id).remove();
+}
+</script>
+
+</body>
+</html>
