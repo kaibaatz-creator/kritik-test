@@ -49,7 +49,7 @@ button{
 
 <br>
 
-<button onclick="createEvent()">➕ Neue Veranstaltung</button>
+<button onclick="createNewEvent()">➕ Neue Veranstaltung</button>
 
 <!-- 🔥 FIREBASE -->
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
@@ -66,8 +66,9 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// 🔥 EVENT ERSTELLEN
-function createEvent(){
+
+// 🔥 EVENT ERSTELLEN (FIXED NAME)
+function createNewEvent(){
 
   const pw = prompt("Passwort:");
   if(pw !== "12"){
@@ -94,6 +95,7 @@ function createEvent(){
 
   alert("Event erstellt!");
 }
+
 
 // 🔥 EVENTS LADEN
 function loadEvents(){
@@ -129,7 +131,8 @@ function loadEvents(){
   });
 }
 
-// Start
+
+// 🚀 START
 loadEvents();
 </script>
 
