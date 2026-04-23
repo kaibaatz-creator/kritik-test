@@ -14,11 +14,19 @@ body{
   text-align:center;
 }
 
-h1{margin-top:20px;}
-
-.top{
-  margin:20px;
+/* 🔐 LOGIN */
+#login{
+  margin-top:100px;
 }
+
+input{
+  padding:10px;
+  border-radius:10px;
+  border:none;
+}
+
+/* 🔝 */
+.top{margin:20px;}
 
 button{
   padding:10px 15px;
@@ -28,12 +36,18 @@ button{
   font-weight:bold;
 }
 
-/* GRID */
+/* 📱 GRID RESPONSIVE */
 .grid{
   display:grid;
-  grid-template-columns:1fr 1fr;
+  grid-template-columns:1fr;
   gap:20px;
-  padding:20px;
+  padding:15px;
+}
+
+@media(min-width:700px){
+  .grid{
+    grid-template-columns:1fr 1fr;
+  }
 }
 
 .column{
@@ -54,15 +68,32 @@ button{
 .card:hover{
   transform:scale(1.03);
 }
+
+.delete{
+  background:red;
+  color:white;
+  margin-top:10px;
+}
 </style>
 </head>
 
 <body>
 
+<!-- 🔐 LOGIN -->
+<div id="login">
+  <h2>🔒 Vorstand Login</h2>
+  <input id="pw" placeholder="Passwort">
+  <br><br>
+  <button onclick="login()">Login</button>
+</div>
+
+<!-- 🔥 APP -->
+<div id="app" style="display:none;">
+
 <h1>🎉 Veranstaltungen</h1>
 
 <div class="top">
-  <button onclick="createNewEvent()">➕ Neue Veranstaltung</button>
+  <button onclick="createEvent()">➕ Neue Veranstaltung</button>
 </div>
 
 <div class="grid">
@@ -79,7 +110,9 @@ button{
 
 </div>
 
-<!-- 🔥 FIREBASE -->
+</div>
+
+<!-- FIREBASE -->
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
@@ -96,46 +129,52 @@ const db = firebase.database();
 
 const ADMIN_PW = "12";
 
-// ➕ EVENT ERSTELLEN
-function createNewEvent(){
-
-  const pw = prompt("Passwort:");
-  if(pw !== ADMIN_PW){
+// 🔐 LOGIN
+function login(){
+  if(pw.value === ADMIN_PW){
+    localStorage.setItem("admin","true");
+    start();
+  }else{
     alert("Falsch");
-    return;
   }
+}
 
-  const name = prompt("Name der Veranstaltung:");
+// AUTO LOGIN
+if(localStorage.getItem("admin")==="true"){
+  start();
+}
+
+function start(){
+  login.style.display="none";
+  app.style.display="block";
+  loadEvents();
+}
+
+// ➕ EVENT
+function createEvent(){
+
+  const name = prompt("Name:");
   if(!name) return;
 
   const datum = prompt("Datum (TT.MM.JJJJ):");
 
   const key = name.toLowerCase().replace(/\s+/g,"_");
 
-  const type = prompt("1 = Mitbringliste\n2 = Info");
+  const type = prompt("1 = Liste\n2 = Info");
 
-  if(type !== "1" && type !== "2"){
-    alert("Abbruch");
-    return;
-  }
+  if(type !== "1" && type !== "2") return;
 
   db.ref("test/events/"+key).set({
     name,
     type,
-    datum: datum || ""
+    datum
   });
 }
 
-// ❌ EVENT LÖSCHEN
+// ❌ DELETE
 function deleteEvent(key){
 
-  const pw = prompt("Passwort:");
-  if(pw !== ADMIN_PW){
-    alert("Falsch");
-    return;
-  }
-
-  if(!confirm("Wirklich löschen?")) return;
+  if(!confirm("Löschen?")) return;
 
   db.ref("test/events/"+key).remove();
   db.ref("test/lists/"+key).remove();
@@ -145,68 +184,79 @@ function deleteEvent(key){
 
 // ⏳ COUNTDOWN
 function getCountdown(dateStr){
-
   if(!dateStr) return "";
 
-  const parts = dateStr.split(".");
-  if(parts.length !== 3) return "";
+  const p = dateStr.split(".");
+  if(p.length!==3) return "";
 
-  const d = new Date(parts[2], parts[1]-1, parts[0]);
+  const d = new Date(p[2],p[1]-1,p[0]);
   const now = new Date();
 
   d.setHours(0,0,0,0);
   now.setHours(0,0,0,0);
 
-  const diff = Math.ceil((d - now) / (1000*60*60*24));
+  const diff = Math.ceil((d-now)/(1000*60*60*24));
 
-  if(diff < 0) return "❌ vorbei";
-  if(diff === 0) return "🟢 heute";
-  if(diff === 1) return "🔥 morgen";
-  if(diff <= 7) return `⚡ noch ${diff} Tage`;
-
-  return `⏳ noch ${diff} Tage`;
+  if(diff<0) return "❌ vorbei";
+  if(diff===0) return "🟢 heute";
+  if(diff===1) return "🔥 morgen";
+  return "⏳ noch "+diff+" Tage";
 }
 
-// 🔥 EVENTS LADEN
-db.ref("test/events").on("value", snap=>{
+// 📅 SORTIEREN
+function parseDate(d){
+  if(!d) return new Date(2100,0,1);
+  const p = d.split(".");
+  return new Date(p[2],p[1]-1,p[0]);
+}
 
-  infoList.innerHTML="";
-  listList.innerHTML="";
+// 🔥 LADEN
+function loadEvents(){
 
-  snap.forEach(child=>{
-    const d = child.val();
-    const key = child.key;
+  db.ref("test/events").on("value", snap=>{
 
-    const countdown = getCountdown(d.datum);
+    infoList.innerHTML="";
+    listList.innerHTML="";
 
-    const div = document.createElement("div");
-    div.className="card";
+    let events=[];
 
-    div.innerHTML = `
-      <b>${d.name}</b><br>
-      <small>📅 ${d.datum || "-"}</small><br>
-      <small>${countdown}</small><br><br>
+    snap.forEach(child=>{
+      events.push({id:child.key,...child.val()});
+    });
 
-      <button onclick="event.stopPropagation(); deleteEvent('${key}')">❌</button>
-    `;
+    // 🔥 SORTIERUNG
+    events.sort((a,b)=> parseDate(a.datum) - parseDate(b.datum));
 
-    div.onclick = function(){
-      if(d.type === "1"){
-        window.location.href = "liste.html?event=" + key;
+    events.forEach(d=>{
+
+      const div = document.createElement("div");
+      div.className="card";
+
+      div.innerHTML = `
+        <b>${d.name}</b><br>
+        📅 ${d.datum || "-"}<br>
+        ${getCountdown(d.datum)}<br>
+        <button class="delete" onclick="event.stopPropagation(); deleteEvent('${d.id}')">❌</button>
+      `;
+
+      div.onclick = ()=>{
+        if(d.type==="1"){
+          location.href="liste.html?event="+d.id;
+        }else{
+          location.href="info.html?event="+d.id;
+        }
+      };
+
+      if(d.type==="2"){
+        infoList.appendChild(div);
       }else{
-        window.location.href = "info.html?event=" + key;
+        listList.appendChild(div);
       }
-    };
 
-    if(d.type === "2"){
-      infoList.appendChild(div);
-    }else{
-      listList.appendChild(div);
-    }
+    });
 
   });
-
-});
+}
 </script>
 
 </body>
