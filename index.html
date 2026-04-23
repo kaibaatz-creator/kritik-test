@@ -6,133 +6,80 @@
 <title>Veranstaltungen</title>
 
 <style>
-body{
-  background:#000;
-  color:white;
-  font-family:Arial;
-  text-align:center;
-}
-
-h2{
-  margin-top:20px;
-}
-
-.card{
-  background:#1e1e1e;
-  margin:15px auto;
-  padding:20px;
-  border-radius:15px;
-  cursor:pointer;
-  max-width:400px;
-  transition:0.2s;
-}
-
-.card:hover{
-  transform:scale(1.03);
-}
-
-button{
-  padding:10px 15px;
-  border:none;
-  border-radius:10px;
-  cursor:pointer;
-  font-weight:bold;
-}
+body{background:#000;color:white;font-family:Arial;text-align:center;}
+.card{background:#1e1e1e;margin:10px;padding:15px;border-radius:12px;cursor:pointer;}
 </style>
 </head>
 
 <body>
 
-<h2>🎉 Veranstaltungen</h2>
+<h1>🎉 Veranstaltungen</h1>
+<button onclick="createEvent()">➕ Neue Veranstaltung</button>
 
-<div id="events"></div>
+<h2>📄 Infos</h2>
+<div id="infoList"></div>
 
-<br>
+<h2>🧺 Listen</h2>
+<div id="listList"></div>
 
-<button onclick="createNewEvent()">➕ Neue Veranstaltung</button>
-
-<!-- 🔥 FIREBASE -->
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
 <script>
 const firebaseConfig = {
-  apiKey: "AIzaSyCFjuJ-XSN0YnvAilerXPkXbw2iR2ixBv8",
-  authDomain: "kritik-system.firebaseapp.com",
-  databaseURL: "https://kritik-system-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "kritik-system"
+  apiKey: "AIzaSyDezLQGk1wUTUbX9FqLjUa0qzVY0cyHvNc",
+  authDomain: "verein-system-f82a6.firebaseapp.com",
+  databaseURL: "https://verein-system-f82a6-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "verein-system-f82a6"
 };
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-
-// 🔥 EVENT ERSTELLEN (FIXED NAME)
-function createNewEvent(){
-
-  const pw = prompt("Passwort:");
-  if(pw !== "12"){
-    alert("Falsches Passwort");
-    return;
-  }
-
-  const name = prompt("Name der Veranstaltung:");
+function createEvent(){
+  const name = prompt("Name:");
   if(!name) return;
+
+  const type = prompt("1 = Liste | 2 = Info");
 
   const key = name.toLowerCase().replace(/\s+/g,"_");
 
-  const type = prompt("1 = Liste\n2 = Info");
-
-  if(type !== "1" && type !== "2"){
-    alert("Abbruch");
-    return;
-  }
-
   db.ref("test/events/"+key).set({
-    name: name,
-    type: type
+    name,
+    type
   });
-
-  alert("Event erstellt!");
 }
 
-
-// 🔥 EVENTS LADEN
 function loadEvents(){
-  const container = document.getElementById("events");
-
   db.ref("test/events").on("value", snap=>{
-    container.innerHTML="";
+    infoList.innerHTML="";
+    listList.innerHTML="";
 
     snap.forEach(child=>{
-      const data = child.val();
+      const d = child.val();
       const key = child.key;
 
       const div = document.createElement("div");
       div.className="card";
+      div.innerHTML = "<b>"+d.name+"</b>";
 
-      const typeText = data.type === "1" ? "📝 Liste" : "📄 Info";
-
-      div.innerHTML = `
-        <b>${data.name}</b><br>
-        <small>${typeText}</small>
-      `;
-
-      div.onclick = function(){
-        if(data.type === "1"){
-          window.location.href = "liste.html?event=" + key;
+      div.onclick = ()=>{
+        if(d.type=="1"){
+          location.href="liste.html?event="+key;
         }else{
-          window.location.href = "info.html?event=" + key;
+          location.href="info.html?event="+key;
         }
       };
 
-      container.appendChild(div);
+      if(d.type=="2"){
+        infoList.appendChild(div);
+      }else{
+        listList.appendChild(div);
+      }
     });
   });
 }
 
-
-// 🚀 START
 loadEvents();
 </script>
 
