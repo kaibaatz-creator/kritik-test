@@ -3,66 +3,96 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+<title>Veranstaltungen</title>
 
 <style>
-body{background:#111;color:white;font-family:Arial;padding:20px;}
-
-h2{text-align:center;}
-
-.section{margin:30px 0;}
-
-table{
-  width:100%;
-  border-collapse:collapse;
-}
-
-th,td{
-  border:1px solid #444;
-  padding:10px;
+body{
+  background:#000;
+  color:white;
+  font-family:Arial;
+  margin:0;
   text-align:center;
 }
 
-input{
-  padding:8px;
-  margin:5px;
-  border-radius:8px;
-  border:none;
+h1{
+  margin-top:20px;
+}
+
+/* 🔝 Button */
+.top{
+  text-align:center;
+  margin:20px;
 }
 
 button{
-  padding:8px 12px;
+  padding:12px 18px;
   border:none;
-  border-radius:8px;
+  border-radius:10px;
   cursor:pointer;
-  margin:5px;
+  font-weight:bold;
 }
 
-.green{background:#00ff99;color:black;}
+/* 🔥 GRID */
+.grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:20px;
+  padding:20px;
+}
+
+.column{
+  background:#111;
+  border-radius:15px;
+  padding:15px;
+}
+
+.column h2{
+  margin-bottom:15px;
+}
+
+/* 🧱 Karten */
+.card{
+  background:#1e1e1e;
+  margin:10px 0;
+  padding:15px;
+  border-radius:12px;
+  cursor:pointer;
+  transition:0.2s;
+}
+
+.card:hover{
+  transform:scale(1.03);
+}
 </style>
 </head>
 
 <body>
 
-<button onclick="goBack()">← Zurück</button>
-<h2 id="title"></h2>
+<h1>🎉 Veranstaltungen</h1>
 
-<hr>
+<div class="top">
+  <button onclick="createNewEvent()">➕ Neue Veranstaltung</button>
+</div>
 
-<!-- Bereich erstellen -->
-<input id="areaName" placeholder="Bereich (z.B. Schminken)">
-<input id="timeInput" placeholder="Zeit (z.B. 9-12)">
-<button onclick="addTime()">➕ Zeit hinzufügen</button>
+<div class="grid">
 
-<div id="timePreview"></div>
+  <!-- 📄 INFO -->
+  <div class="column">
+    <h2>📄 Infos</h2>
+    <div id="infoList"></div>
+  </div>
 
-<button class="green" onclick="createArea()">Bereich erstellen</button>
+  <!-- 🧺 LISTE -->
+  <div class="column">
+    <h2>🧺 Mitbringliste</h2>
+    <div id="listList"></div>
+  </div>
 
-<hr>
+</div>
 
-<div id="content"></div>
+<!-- 🔥 FIREBASE -->
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
 <script>
 const firebaseConfig = {
@@ -75,133 +105,67 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-const event = new URLSearchParams(window.location.search).get("event");
-document.getElementById("title").innerText = event;
+const ADMIN_PW = "12";
 
-// zurück
-function goBack(){
-  window.location.href="index.html";
-}
+// ➕ EVENT ERSTELLEN
+function createNewEvent(){
 
-// 🔥 Zeiten sammeln
-let times=[];
-
-function addTime(){
-  const t = timeInput.value;
-  if(!t) return;
-
-  times.push(t);
-  timeInput.value="";
-
-  renderTimes();
-}
-
-function renderTimes(){
-  timePreview.innerHTML = times.join(" | ");
-}
-
-// 🔥 Bereich erstellen
-function createArea(){
-
-  if(!areaName.value || times.length===0){
-    alert("Name + Zeiten nötig");
+  const pw = prompt("Passwort:");
+  if(pw !== ADMIN_PW){
+    alert("Falsch");
     return;
   }
 
-  const key = areaName.value.toLowerCase().replace(/\s+/g,"_");
+  const name = prompt("Name der Veranstaltung:");
+  if(!name) return;
 
-  db.ref("test/planung/"+event+"/"+key).set({
-    name: areaName.value,
-    times: times
+  const key = name.toLowerCase().replace(/\s+/g,"_");
+
+  const type = prompt("1 = Mitbringliste\n2 = Info");
+
+  if(type !== "1" && type !== "2"){
+    alert("Abbruch");
+    return;
+  }
+
+  db.ref("test/events/"+key).set({
+    name,
+    type
   });
-
-  areaName.value="";
-  times=[];
-  renderTimes();
 }
 
-// 🔥 Bereiche laden
-db.ref("test/planung/"+event).on("value", snap=>{
-  content.innerHTML="";
+// 🔥 LADEN
+db.ref("test/events").on("value", snap=>{
+
+  infoList.innerHTML="";
+  listList.innerHTML="";
 
   snap.forEach(child=>{
     const d = child.val();
     const key = child.key;
 
     const div = document.createElement("div");
-    div.className="section";
+    div.className="card";
+    div.innerHTML = d.name;
 
-    // HEADER
-    let header = "<tr>";
-    d.times.forEach(t=>{
-      header += `<th>${t}</th>`;
-    });
-    header += "</tr>";
+    div.onclick = function(){
+      if(d.type === "1"){
+        window.location.href = "liste.html?event=" + key;
+      }else{
+        window.location.href = "info.html?event=" + key;
+      }
+    };
 
-    div.innerHTML = `
-      <h3>${d.name}</h3>
-
-      <table>
-        <thead>${header}</thead>
-        <tbody id="table_${key}"></tbody>
-      </table>
-
-      <input id="name_${key}" placeholder="Name">
-      ${d.times.map((t,i)=>`
-        <button onclick="add('${key}',${i})">+ ${t}</button>
-      `).join("")}
-    `;
-
-    content.appendChild(div);
-
-    loadTable(key, d.times.length);
-  });
-});
-
-// 🔥 Eintragen
-function add(area,slot){
-
-  const name = document.getElementById("name_"+area).value;
-  if(!name) return;
-
-  db.ref("test/planung/"+event+"/"+area+"/list").push({
-    name, slot
-  });
-
-  document.getElementById("name_"+area).value="";
-}
-
-// 🔥 Tabelle
-function loadTable(area,cols){
-
-  db.ref("test/planung/"+event+"/"+area+"/list").on("value", snap=>{
-
-    const table = document.getElementById("table_"+area);
-    if(!table) return;
-
-    table.innerHTML="";
-
-    let columns = Array.from({length:cols},()=>[]);
-
-    snap.forEach(child=>{
-      const d = child.val();
-      columns[d.slot].push(d.name);
-    });
-
-    const max = Math.max(...columns.map(c=>c.length),0);
-
-    for(let i=0;i<max;i++){
-      const tr = document.createElement("tr");
-
-      tr.innerHTML = columns.map(col=>`
-        <td>${col[i]||""}</td>
-      `).join("");
-
-      table.appendChild(tr);
+    // 👉 AUFTEILEN
+    if(d.type === "2"){
+      infoList.appendChild(div);
+    }else{
+      listList.appendChild(div);
     }
 
   });
-}
+
+});
 </script>
 
 </body>
