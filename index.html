@@ -14,7 +14,7 @@ body{background:#000;color:white;font-family:Arial;text-align:center;}
 <body>
 
 <h1>🎉 Veranstaltungen</h1>
-<button onclick="createEvent()">➕ Neue Veranstaltung</button>
+<button onclick="createEvent(event)">➕ Neue Veranstaltung</button>
 
 <h2>📄 Infos</h2>
 <div id="infoList"></div>
@@ -36,18 +36,22 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-function createEvent(){
+function createEvent(e){
+
   const name = prompt("Name:");
   if(!name) return;
 
   const type = prompt("1 = Liste | 2 = Info");
+  if(type !== "1" && type !== "2") return;
 
   const key = name.toLowerCase().replace(/\s+/g,"_");
 
   db.ref("test/events/"+key).set({
-    name,
-    type
+    name:name,
+    type:type
   });
+
+  alert("Gespeichert!");
 }
 
 function loadEvents(){
