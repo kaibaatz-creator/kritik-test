@@ -8,35 +8,21 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
 <style>
-body{
-  background:#111;
-  color:white;
-  font-family:Arial;
-  padding:20px;
-}
+body{background:#111;color:white;font-family:Arial;padding:20px;}
 
-h2{
-  text-align:center;
-}
+h2{text-align:center;}
 
-.section{
-  margin:30px 0;
-}
+.section{margin:30px 0;}
 
 table{
   width:100%;
   border-collapse:collapse;
-  margin-top:10px;
 }
 
 th,td{
   border:1px solid #444;
   padding:10px;
   text-align:center;
-}
-
-th{
-  background:#222;
 }
 
 input{
@@ -55,33 +41,26 @@ button{
 }
 
 .green{background:#00ff99;color:black;}
-.red{background:red;color:white;}
-
-.topbar{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-}
 </style>
 </head>
 
 <body>
 
-<div class="topbar">
-  <button onclick="goBack()">← Zurück</button>
-  <h2 id="title"></h2>
-  <div></div>
-</div>
+<button onclick="goBack()">← Zurück</button>
+<h2 id="title"></h2>
 
 <hr>
 
-<!-- 🔧 Bereich erstellen -->
-<div>
-  <input id="areaName" placeholder="Bereich (z.B. Schminken)">
-  <input id="zeit1" placeholder="Zeit 1 (z.B. 9-12)">
-  <input id="zeit2" placeholder="Zeit 2 (z.B. 12-15)">
-  <button class="green" onclick="createArea()">Bereich hinzufügen</button>
-</div>
+<!-- Bereich erstellen -->
+<input id="areaName" placeholder="Bereich (z.B. Schminken)">
+<input id="timeInput" placeholder="Zeit (z.B. 9-12)">
+<button onclick="addTime()">➕ Zeit hinzufügen</button>
+
+<div id="timePreview"></div>
+
+<button class="green" onclick="createArea()">Bereich erstellen</button>
+
+<hr>
 
 <div id="content"></div>
 
@@ -99,35 +78,51 @@ const db = firebase.database();
 const event = new URLSearchParams(window.location.search).get("event");
 document.getElementById("title").innerText = event;
 
-// 🔙 zurück
+// zurück
 function goBack(){
-  window.location.href = "index.html";
+  window.location.href="index.html";
+}
+
+// 🔥 Zeiten sammeln
+let times=[];
+
+function addTime(){
+  const t = timeInput.value;
+  if(!t) return;
+
+  times.push(t);
+  timeInput.value="";
+
+  renderTimes();
+}
+
+function renderTimes(){
+  timePreview.innerHTML = times.join(" | ");
 }
 
 // 🔥 Bereich erstellen
 function createArea(){
 
-  const name = areaName.value;
-  const z1 = zeit1.value;
-  const z2 = zeit2.value;
+  if(!areaName.value || times.length===0){
+    alert("Name + Zeiten nötig");
+    return;
+  }
 
-  if(!name || !z1 || !z2) return alert("Bitte alles ausfüllen");
-
-  const key = name.toLowerCase().replace(/\s+/g,"_");
+  const key = areaName.value.toLowerCase().replace(/\s+/g,"_");
 
   db.ref("test/planung/"+event+"/"+key).set({
-    name, z1, z2
+    name: areaName.value,
+    times: times
   });
 
   areaName.value="";
-  zeit1.value="";
-  zeit2.value="";
+  times=[];
+  renderTimes();
 }
 
 // 🔥 Bereiche laden
 db.ref("test/planung/"+event).on("value", snap=>{
-  const container = document.getElementById("content");
-  container.innerHTML="";
+  content.innerHTML="";
 
   snap.forEach(child=>{
     const d = child.val();
@@ -136,27 +131,30 @@ db.ref("test/planung/"+event).on("value", snap=>{
     const div = document.createElement("div");
     div.className="section";
 
+    // HEADER
+    let header = "<tr>";
+    d.times.forEach(t=>{
+      header += `<th>${t}</th>`;
+    });
+    header += "</tr>";
+
     div.innerHTML = `
       <h3>${d.name}</h3>
 
       <table>
-        <thead>
-          <tr>
-            <th>${d.z1}</th>
-            <th>${d.z2}</th>
-          </tr>
-        </thead>
+        <thead>${header}</thead>
         <tbody id="table_${key}"></tbody>
       </table>
 
       <input id="name_${key}" placeholder="Name">
-      <button onclick="add('${key}','1')">+ ${d.z1}</button>
-      <button onclick="add('${key}','2')">+ ${d.z2}</button>
+      ${d.times.map((t,i)=>`
+        <button onclick="add('${key}',${i})">+ ${t}</button>
+      `).join("")}
     `;
 
-    container.appendChild(div);
+    content.appendChild(div);
 
-    loadTable(key);
+    loadTable(key, d.times.length);
   });
 });
 
@@ -173,8 +171,8 @@ function add(area,slot){
   document.getElementById("name_"+area).value="";
 }
 
-// 🔥 Tabelle laden
-function loadTable(area){
+// 🔥 Tabelle
+function loadTable(area,cols){
 
   db.ref("test/planung/"+event+"/"+area+"/list").on("value", snap=>{
 
@@ -183,25 +181,25 @@ function loadTable(area){
 
     table.innerHTML="";
 
-    let col1 = [];
-    let col2 = [];
+    let columns = Array.from({length:cols},()=>[]);
 
     snap.forEach(child=>{
       const d = child.val();
-      if(d.slot==="1") col1.push(d.name);
-      if(d.slot==="2") col2.push(d.name);
+      columns[d.slot].push(d.name);
     });
 
-    const max = Math.max(col1.length,col2.length);
+    const max = Math.max(...columns.map(c=>c.length),0);
 
     for(let i=0;i<max;i++){
       const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${col1[i]||""}</td>
-        <td>${col2[i]||""}</td>
-      `;
+
+      tr.innerHTML = columns.map(col=>`
+        <td>${col[i]||""}</td>
+      `).join("");
+
       table.appendChild(tr);
     }
+
   });
 }
 </script>
