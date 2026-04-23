@@ -14,25 +14,21 @@ body{
   text-align:center;
 }
 
-h1{
-  margin-top:20px;
-}
+h1{margin-top:20px;}
 
-/* 🔝 Button */
 .top{
-  text-align:center;
   margin:20px;
 }
 
 button{
-  padding:12px 18px;
+  padding:10px 15px;
   border:none;
   border-radius:10px;
   cursor:pointer;
   font-weight:bold;
 }
 
-/* 🔥 GRID */
+/* GRID */
 .grid{
   display:grid;
   grid-template-columns:1fr 1fr;
@@ -46,11 +42,6 @@ button{
   padding:15px;
 }
 
-.column h2{
-  margin-bottom:15px;
-}
-
-/* 🧱 Karten */
 .card{
   background:#1e1e1e;
   margin:10px 0;
@@ -76,15 +67,13 @@ button{
 
 <div class="grid">
 
-  <!-- 📄 INFO -->
   <div class="column">
     <h2>📄 Infos</h2>
     <div id="infoList"></div>
   </div>
 
-  <!-- 🧺 LISTE -->
   <div class="column">
-    <h2>🧺 Mitbringliste</h2>
+    <h2>🧺 Mitbringlisten</h2>
     <div id="listList"></div>
   </div>
 
@@ -119,6 +108,8 @@ function createNewEvent(){
   const name = prompt("Name der Veranstaltung:");
   if(!name) return;
 
+  const datum = prompt("Datum (TT.MM.JJJJ):");
+
   const key = name.toLowerCase().replace(/\s+/g,"_");
 
   const type = prompt("1 = Mitbringliste\n2 = Info");
@@ -130,11 +121,53 @@ function createNewEvent(){
 
   db.ref("test/events/"+key).set({
     name,
-    type
+    type,
+    datum: datum || ""
   });
 }
 
-// 🔥 LADEN
+// ❌ EVENT LÖSCHEN
+function deleteEvent(key){
+
+  const pw = prompt("Passwort:");
+  if(pw !== ADMIN_PW){
+    alert("Falsch");
+    return;
+  }
+
+  if(!confirm("Wirklich löschen?")) return;
+
+  db.ref("test/events/"+key).remove();
+  db.ref("test/lists/"+key).remove();
+  db.ref("test/info/"+key).remove();
+  db.ref("test/planung/"+key).remove();
+}
+
+// ⏳ COUNTDOWN
+function getCountdown(dateStr){
+
+  if(!dateStr) return "";
+
+  const parts = dateStr.split(".");
+  if(parts.length !== 3) return "";
+
+  const d = new Date(parts[2], parts[1]-1, parts[0]);
+  const now = new Date();
+
+  d.setHours(0,0,0,0);
+  now.setHours(0,0,0,0);
+
+  const diff = Math.ceil((d - now) / (1000*60*60*24));
+
+  if(diff < 0) return "❌ vorbei";
+  if(diff === 0) return "🟢 heute";
+  if(diff === 1) return "🔥 morgen";
+  if(diff <= 7) return `⚡ noch ${diff} Tage`;
+
+  return `⏳ noch ${diff} Tage`;
+}
+
+// 🔥 EVENTS LADEN
 db.ref("test/events").on("value", snap=>{
 
   infoList.innerHTML="";
@@ -144,9 +177,18 @@ db.ref("test/events").on("value", snap=>{
     const d = child.val();
     const key = child.key;
 
+    const countdown = getCountdown(d.datum);
+
     const div = document.createElement("div");
     div.className="card";
-    div.innerHTML = d.name;
+
+    div.innerHTML = `
+      <b>${d.name}</b><br>
+      <small>📅 ${d.datum || "-"}</small><br>
+      <small>${countdown}</small><br><br>
+
+      <button onclick="event.stopPropagation(); deleteEvent('${key}')">❌</button>
+    `;
 
     div.onclick = function(){
       if(d.type === "1"){
@@ -156,7 +198,6 @@ db.ref("test/events").on("value", snap=>{
       }
     };
 
-    // 👉 AUFTEILEN
     if(d.type === "2"){
       infoList.appendChild(div);
     }else{
