@@ -2,260 +2,46 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Veranstaltungen</title>
+<title>Info</title>
 
 <style>
-body{
-  background:#000;
-  color:white;
-  font-family:Arial;
-  margin:0;
-  text-align:center;
-}
-
-input{
-  padding:10px;
-  border-radius:10px;
-  border:none;
-}
-
-/* LOGIN */
-#loginBox{
-  margin-top:100px;
-}
-
-/* BUTTON */
-button{
-  padding:10px 15px;
-  border:none;
-  border-radius:10px;
-  cursor:pointer;
-  font-weight:bold;
-}
-
-/* GRID */
-.grid{
-  display:grid;
-  grid-template-columns:1fr;
-  gap:20px;
-  padding:15px;
-}
-
-@media(min-width:700px){
-  .grid{
-    grid-template-columns:1fr 1fr;
-  }
-}
-
-.column{
-  background:#111;
-  border-radius:15px;
-  padding:15px;
-}
-
-.card{
-  background:#1e1e1e;
-  margin:10px 0;
-  padding:15px;
-  border-radius:12px;
-  cursor:pointer;
-}
-
-.delete{
-  background:red;
-  color:white;
-  margin-top:10px;
-}
-
-.top{
-  margin:20px;
-}
+body{background:#000;color:white;text-align:center;font-family:Arial;}
+textarea{width:90%;height:200px;margin-top:20px;}
 </style>
 </head>
 
 <body>
 
-<!-- 🔐 LOGIN -->
-<div id="loginBox">
-  <h2>🔒 Vorstand Login</h2>
-  <input id="pw" placeholder="Passwort">
-  <br><br>
-  <button onclick="doLogin()">Login</button>
-</div>
+<button onclick="history.back()">⬅ Zurück</button>
 
-<!-- 🔥 APP -->
-<div id="app" style="display:none;">
+<h2 id="title"></h2>
 
-<h1>🎉 Veranstaltungen</h1>
+<textarea id="text" placeholder="Infos..."></textarea><br>
+<button onclick="save()">Speichern</button>
 
-<div class="top">
-  <button onclick="createEvent()">➕ Neue Veranstaltung</button>
-</div>
-
-<div class="grid">
-
-  <div class="column">
-    <h2>📄 Infos</h2>
-    <div id="infoList"></div>
-  </div>
-
-  <div class="column">
-    <h2>🧺 Mitbringlisten</h2>
-    <div id="listList"></div>
-  </div>
-
-</div>
-
-</div>
-
-<!-- FIREBASE -->
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
 <script>
 const firebaseConfig = {
-  apiKey: "AIzaSyCFjuJ-XSN0YnvAilerXPkXbw2iR2ixBv8",
-  authDomain: "kritik-system.firebaseapp.com",
-  databaseURL: "https://kritik-system-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "kritik-system"
+  apiKey: "AIzaSyDezLQGk1wUTUbX9FqLjUa0qzVY0cyHvNc",
+  authDomain: "verein-system-f82a6.firebaseapp.com",
+  databaseURL: "https://verein-system-f82a6-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "verein-system-f82a6"
 };
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-const ADMIN_PW = "12";
+const event = new URLSearchParams(location.search).get("event");
+title.innerText = event;
 
-// 🔐 LOGIN
-function doLogin(){
-  const input = document.getElementById("pw").value;
+db.ref("test/info/"+event).on("value", snap=>{
+  text.value = snap.val() || "";
+});
 
-  if(input === ADMIN_PW){
-    localStorage.setItem("admin","true");
-    start();
-  }else{
-    alert("Falsches Passwort");
-  }
-}
-
-// AUTO LOGIN
-if(localStorage.getItem("admin")==="true"){
-  start();
-}
-
-// START
-function start(){
-  document.getElementById("loginBox").style.display="none";
-  document.getElementById("app").style.display="block";
-  loadEvents();
-}
-
-// ➕ EVENT
-function createEvent(){
-
-  const name = prompt("Name:");
-  if(!name) return;
-
-  const datum = prompt("Datum (TT.MM.JJJJ):");
-
-  const key = name.toLowerCase().replace(/\s+/g,"_");
-
-  const type = prompt("1 = Liste\n2 = Info");
-
-  if(type !== "1" && type !== "2") return;
-
-  db.ref("test/events/"+key).set({
-    name,
-    type,
-    datum
-  });
-}
-
-// ❌ DELETE
-function deleteEvent(key){
-
-  if(!confirm("Löschen?")) return;
-
-  db.ref("test/events/"+key).remove();
-  db.ref("test/lists/"+key).remove();
-  db.ref("test/info/"+key).remove();
-  db.ref("test/planung/"+key).remove();
-}
-
-// ⏳ COUNTDOWN
-function getCountdown(dateStr){
-  if(!dateStr) return "";
-
-  const p = dateStr.split(".");
-  if(p.length!==3) return "";
-
-  const d = new Date(p[2],p[1]-1,p[0]);
-  const now = new Date();
-
-  d.setHours(0,0,0,0);
-  now.setHours(0,0,0,0);
-
-  const diff = Math.ceil((d-now)/(1000*60*60*24));
-
-  if(diff<0) return "❌ vorbei";
-  if(diff===0) return "🟢 heute";
-  if(diff===1) return "🔥 morgen";
-  return "⏳ noch "+diff+" Tage";
-}
-
-// 📅 SORTIEREN
-function parseDate(d){
-  if(!d) return new Date(2100,0,1);
-  const p = d.split(".");
-  return new Date(p[2],p[1]-1,p[0]);
-}
-
-// 🔥 LADEN
-function loadEvents(){
-
-  db.ref("test/events").on("value", snap=>{
-
-    infoList.innerHTML="";
-    listList.innerHTML="";
-
-    let events=[];
-
-    snap.forEach(child=>{
-      events.push({id:child.key,...child.val()});
-    });
-
-    // SORTIERUNG
-    events.sort((a,b)=> parseDate(a.datum) - parseDate(b.datum));
-
-    events.forEach(d=>{
-
-      const div = document.createElement("div");
-      div.className="card";
-
-      div.innerHTML = `
-        <b>${d.name}</b><br>
-        📅 ${d.datum || "-"}<br>
-        ${getCountdown(d.datum)}<br>
-        <button class="delete" onclick="event.stopPropagation(); deleteEvent('${d.id}')">❌</button>
-      `;
-
-      div.onclick = ()=>{
-        if(d.type==="1"){
-          location.href="liste.html?event="+d.id;
-        }else{
-          location.href="info.html?event="+d.id;
-        }
-      };
-
-      if(d.type==="2"){
-        infoList.appendChild(div);
-      }else{
-        listList.appendChild(div);
-      }
-
-    });
-
-  });
+function save(){
+  db.ref("test/info/"+event).set(text.value);
 }
 </script>
 
